@@ -44,6 +44,7 @@ jobs:
           docker push $IMAGE
 
       - name: SSH deploy
+        if: ${{ secrets.SSH_HOST != '' && secrets.SSH_USER != '' && secrets.SSH_KEY != '' }}
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
