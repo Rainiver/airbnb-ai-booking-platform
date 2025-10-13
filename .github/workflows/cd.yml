@@ -4,13 +4,6 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
-    paths:
-      - 'app/**'
-      - 'components/**'
-      - 'lib/**'
-      - 'pages/**'
-      - 'prisma/**'
-      - 'Dockerfile'
 
 jobs:
   deploy:
