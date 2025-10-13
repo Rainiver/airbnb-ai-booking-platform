@@ -26,7 +26,7 @@ function Footer({}: Props) {
   }, []);
 
   const footerColumns = itemData.map((item, index) => (
-    <FooterColumn index={index} data={item} />
+    <FooterColumn key={index} index={index} data={item} />
   ))
 
   return (
