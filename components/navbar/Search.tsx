@@ -49,7 +49,7 @@ function Search({}: Props) {
     }
 
     return "Add Guests";
-  }, []);
+  }, [guestCount]);
 
   return (
     <div
