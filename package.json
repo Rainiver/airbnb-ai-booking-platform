@@ -27,6 +27,7 @@
     "eslint-config-next": "13.2.4",
     "framer-motion": "^10.10.0",
     "leaflet": "^1.9.4",
+    "lucide-react": "^0.545.0",
     "next": "13.2.4",
     "next-auth": "^4.20.1",
     "next-cloudinary": "^4.1.1",
