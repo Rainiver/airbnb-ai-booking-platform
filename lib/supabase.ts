@@ -59,7 +59,7 @@ export async function storeListingEmbedding(
 // 语义搜索房源
 export async function semanticSearchListings(
   queryEmbedding: number[],
-  matchThreshold: number = 0.7,
+  matchThreshold: number = 0.2,
   matchCount: number = 10
 ): Promise<VectorSearchResult[]> {
   const { data, error } = await supabase.rpc('match_listings', {

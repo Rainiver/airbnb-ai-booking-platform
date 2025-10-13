@@ -18,7 +18,7 @@ export async function searchAgent(query: string): Promise<AgentResult> {
     // 语义搜索
     const searchResults = await semanticSearchListings(
       queryEmbedding,
-      0.6, // 相似度阈值
+      0.2, // 相似度阈值（降低以匹配实际数据）
       20   // 返回数量
     );
 
@@ -37,7 +37,7 @@ export async function searchAgent(query: string): Promise<AgentResult> {
     return {
       agent: 'SearchAgent',
       listings,
-      reasoning: `基于语义搜索找到了 ${listings.length} 个相关房源，相似度阈值 0.6`
+      reasoning: `基于语义搜索找到了 ${listings.length} 个相关房源，相似度阈值 0.2`
     };
   } catch (error) {
     console.error('SearchAgent Error:', error);
