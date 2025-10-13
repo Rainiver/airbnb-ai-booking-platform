@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import ClientOnly from "@/components/ClientOnly";
 import Footer from "@/components/Footer";
 import ToastContainerBar from "@/components/ToastContainerBar";
