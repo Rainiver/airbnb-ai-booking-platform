@@ -1,0 +1,65 @@
+name: CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'pages/**'
+      - 'prisma/**'
+      - 'Dockerfile'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ github.repository }}:latest .
+
+      - name: Login to registry
+        if: env.REGISTRY != ''
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Push image
+        if: env.REGISTRY != ''
+        run: |
+          IMAGE=${{ env.REGISTRY }}/${{ github.repository }}:latest
+          docker tag ${{ github.repository }}:latest $IMAGE
+          docker push $IMAGE
+
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            cd ~/apps/airbnb-build || mkdir -p ~/apps/airbnb-build && cd ~/apps/airbnb-build
+            echo "PULL & RECREATE CONTAINERS"
+            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
+            echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> .env
+            echo "NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}" >> .env
+            docker rm -f airbnb-app || true
+            docker pull ${{ env.REGISTRY }}/${{ github.repository }}:latest || true
+            docker run -d --name airbnb-app --restart unless-stopped \
+              --env-file .env -p 3000:3000 \
+              ${{ env.REGISTRY }}/${{ github.repository }}:latest
+
+

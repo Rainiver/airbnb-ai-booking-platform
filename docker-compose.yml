@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  mongo:
+    image: mongo:6
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    command: ["--replSet","rs0","--bind_ip_all"]
+
+  app:
+    build: .
+    depends_on:
+      - mongo
+    environment:
+      - DATABASE_URL=mongodb://mongo:27017/airbnb-clone
+      - NEXTAUTH_SECRET=changeme
+      - NEXTAUTH_URL=http://localhost:3000
+    ports:
+      - "3000:3000"
+    command: sh -c "node -e 'setTimeout(()=>process.exit(0), 3000)' && mongosh --host mongo --eval 'rs.initiate()' || true && npx prisma db push && npm start"
+
+volumes:
+  mongo-data:
+
+

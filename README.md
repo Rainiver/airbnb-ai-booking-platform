@@ -1,0 +1,187 @@
+# 🏠 Airbnb Clone - 全栈预订平台
+
+一个功能完整的Airbnb克隆应用，使用现代技术栈构建，展示全栈开发技能。
+
+## ✨ 项目特色
+
+- 🎨 **现代化UI设计** - 使用Tailwind CSS构建响应式界面
+- 🔐 **完整用户认证** - 支持邮箱注册/登录和第三方登录
+- 🏠 **房源管理** - 用户可以发布、编辑、删除房源
+- 🔍 **智能搜索** - 按地点、日期、价格、房型筛选
+- ❤️ **收藏功能** - 用户可以收藏喜欢的房源
+- 📅 **预订系统** - 完整的预订流程和日期管理
+- 🗺️ **地图集成** - 房源位置展示和选择
+- 📱 **移动端适配** - 完全响应式设计
+
+## 🛠️ 技术栈
+
+### 前端
+- **Next.js 13** - React全栈框架，使用App Router
+- **TypeScript** - 类型安全的JavaScript
+- **Tailwind CSS** - 实用优先的CSS框架
+- **Framer Motion** - 动画库
+- **React Hook Form** - 表单管理
+- **React Leaflet** - 地图组件
+
+### 后端
+- **Next.js API Routes** - 服务端API
+- **Prisma** - 现代数据库ORM
+- **MongoDB** - NoSQL数据库
+- **NextAuth.js** - 身份认证
+- **bcrypt** - 密码加密
+
+### 第三方服务
+- **Cloudinary** - 图片存储和CDN
+- **Google OAuth** - Google登录
+- **Facebook OAuth** - Facebook登录
+
+## 🚀 快速开始
+
+### 环境要求
+- Node.js 18+
+- MongoDB
+- npm 或 yarn
+
+### 安装步骤
+
+1. **克隆项目**
+```bash
+git clone <your-repo-url>
+cd Airbnb-Build-master
+```
+
+2. **安装依赖**
+```bash
+npm install
+```
+
+3. **配置环境变量**
+创建 `.env` 文件并添加以下配置：
+```env
+# 数据库配置
+DATABASE_URL="mongodb://localhost:27017/airbnb-clone"
+
+# NextAuth 配置
+NEXTAUTH_SECRET="your-secret-key-here"
+NEXTAUTH_URL="http://localhost:3000"
+
+# Google OAuth (可选)
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+
+# Facebook OAuth (可选)
+FACEBOOK_ID=""
+FACEBOOK_SECRET=""
+
+# Cloudinary 配置 (可选)
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=""
+CLOUDINARY_API_KEY=""
+CLOUDINARY_API_SECRET=""
+```
+
+4. **启动MongoDB**
+```bash
+# macOS (使用Homebrew)
+brew services start mongodb-community
+
+# 配置MongoDB为副本集
+mongod --replSet rs0 --port 27017 --dbpath /opt/homebrew/var/mongodb
+mongosh --eval "rs.initiate()"
+```
+
+5. **数据库迁移**
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+6. **启动开发服务器**
+```bash
+npm run dev
+```
+
+访问 [http://localhost:3000](http://localhost:3000) 查看应用
+
+## 📱 功能演示
+
+### 主要功能
+- ✅ 用户注册/登录系统
+- ✅ 房源发布和管理
+- ✅ 智能搜索和筛选
+- ✅ 收藏和预订功能
+- ✅ 响应式设计
+- ✅ 地图集成
+- ✅ 图片上传
+
+### 测试账户
+- 邮箱: `test@example.com`
+- 密码: `password`
+
+## 🏗️ 项目结构
+
+```
+├── app/                    # Next.js 13 App Router
+│   ├── actions/           # 服务端操作
+│   ├── api/               # API路由
+│   └── (pages)/           # 页面组件
+├── components/            # React组件
+│   ├── inputs/           # 表单组件
+│   ├── listing/          # 房源相关组件
+│   ├── models/           # 模态框组件
+│   └── navbar/           # 导航组件
+├── lib/                   # 工具库
+├── prisma/               # 数据库模式
+└── public/               # 静态资源
+```
+
+## 🔧 开发说明
+
+### 数据库设计
+- **User** - 用户信息
+- **Listing** - 房源信息
+- **Reservation** - 预订记录
+- **Account** - 第三方账户关联
+
+### 关键组件
+- `ListingCard` - 房源卡片组件
+- `SearchModal` - 搜索模态框
+- `RentModal` - 发布房源模态框
+- `Map` - 地图组件
+
+## 📈 性能优化
+
+- 使用Next.js 13的App Router
+- 服务端渲染(SSR)
+- 图片优化
+- 代码分割
+- 数据库查询优化
+
+## 🚀 部署
+
+### Vercel部署
+1. 连接GitHub仓库到Vercel
+2. 配置环境变量
+3. 自动部署
+
+### 其他平台
+- Netlify
+- Railway
+- DigitalOcean
+
+## 📄 许可证
+
+MIT License
+
+## 👨‍💻 开发者
+
+这个项目展示了以下技能：
+- 全栈开发能力
+- 现代React/Next.js技术
+- 数据库设计和ORM使用
+- 第三方API集成
+- 响应式设计
+- 用户体验优化
+
+---
+
+⭐ 如果这个项目对您有帮助，请给个星标！
