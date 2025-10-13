@@ -158,15 +158,55 @@ npm run dev
 
 ## 🚀 部署
 
-### Vercel部署
-1. 连接GitHub仓库到Vercel
-2. 配置环境变量
-3. 自动部署
+### AWS 部署（推荐用于简历）⭐
 
-### 其他平台
-- Netlify
-- Railway
-- DigitalOcean
+本项目已配置完整的 AWS 部署方案，包括：
+- ✅ **AWS EC2** 生产环境部署
+- ✅ **MongoDB Atlas** 云数据库
+- ✅ **Docker 容器化**部署
+- ✅ **GitHub Actions CI/CD** 自动化部署
+- ✅ **Nginx 反向代理** + SSL 证书
+
+详细部署指南：📖 [AWS_DEPLOYMENT_GUIDE.md](./AWS_DEPLOYMENT_GUIDE.md)
+
+#### 快速部署（3步完成）
+
+1. **创建 AWS EC2 实例**（t2.micro 免费层）
+2. **SSH 连接并运行部署脚本**：
+   ```bash
+   git clone https://github.com/Rainiver/airbnb-ai-booking-platform.git
+   cd airbnb-ai-booking-platform
+   chmod +x scripts/deploy-to-aws.sh
+   ./scripts/deploy-to-aws.sh
+   ```
+3. **访问应用**：`http://your-ec2-ip:3000`
+
+#### 自动化部署
+
+配置 GitHub Secrets 后，每次推送到 `main` 分支自动部署到 AWS：
+- `SSH_HOST` - EC2 公网 IP
+- `SSH_USER` - ubuntu
+- `SSH_KEY` - .pem 密钥内容
+- `DATABASE_URL` - MongoDB Atlas 连接串
+- `NEXTAUTH_SECRET` - NextAuth 密钥
+- `NEXTAUTH_URL` - 网站访问地址
+
+### 其他部署平台
+
+#### Vercel（免费，适合快速展示）
+```bash
+npm i -g vercel
+vercel --prod
+```
+**注意**：需配合 MongoDB Atlas 使用
+
+#### Railway（$5/月免费额度）
+- 支持 Docker + 数据库
+- 连接 GitHub 自动部署
+
+#### Render / Fly.io
+- 免费层可用
+- 详见 [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
 
 ## 📄 许可证
 
