@@ -19,7 +19,7 @@ jobs:
 
       - name: Create deployment package
         run: |
-          tar -czf deploy.tar.gz --exclude=node_modules --exclude=.git --exclude=.next .
+          tar -czf deploy.tar.gz --exclude=node_modules --exclude=.git --exclude=.next --exclude=deploy.tar.gz . || [ $? -eq 1 ]
 
       - name: Upload to EC2
         uses: appleboy/scp-action@v0.1.7
