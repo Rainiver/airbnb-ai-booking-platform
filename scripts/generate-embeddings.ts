@@ -1,3 +1,6 @@
+// 加载环境变量
+require('dotenv').config({ path: '.env.local' });
+
 import prisma from '../lib/prismadb';
 import { generateEmbedding } from '../lib/gemini';
 import { storeListingEmbedding } from '../lib/supabase';

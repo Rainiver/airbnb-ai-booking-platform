@@ -1,3 +1,6 @@
+// 加载环境变量
+require('dotenv').config({ path: '.env.local' });
+
 import { createClient } from '@supabase/supabase-js';
 
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {

@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { IoClose, IoSend } from 'react-icons/io5';
-import { BsRobot } from 'react-icons/bs';
-import { useRouter } from 'next/navigation';
+import { X, Send, Bot, User } from 'lucide-react';
 
 interface Message {
-  role: 'user' | 'assistant';
+  id: string;
+  type: 'user' | 'assistant';
   content: string;
-  listings?: any[];
+  timestamp: Date;
 }
 
 interface AIChatModalProps {
@@ -19,16 +18,16 @@ interface AIChatModalProps {
 const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
-      role: 'assistant',
-      content: '你好！我是AI助手🤖 我可以帮你找到完美的住宿。告诉我你的需求吧！',
+      id: '1',
+      type: 'assistant',
+      content: '👋 你好！我是你的AI旅行助手，可以帮你找到完美的房源！\n\n你可以这样问我：\n• "我想找海边的房子"\n• "推荐一些价格便宜的房源"\n• "帮我找个适合家庭的大房子"\n\n有什么可以帮助你的吗？',
+      timestamp: new Date(),
     },
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
 
-  // 自动滚动到底部
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -37,60 +36,53 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
     scrollToBottom();
   }, [messages]);
 
-  // 发送消息
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMessage = input.trim();
-    setInput('');
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: input.trim(),
+      timestamp: new Date(),
+    };
 
-    // 添加用户消息
-    const newMessages = [...messages, { role: 'user' as const, content: userMessage }];
-    setMessages(newMessages);
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
     setIsLoading(true);
 
     try {
-      // 调用 AI API
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          messages: newMessages,
-        }),
+        body: JSON.stringify({ message: userMessage.content }),
       });
-
-      if (!response.ok) {
-        throw new Error('请求失败');
-      }
 
       const data = await response.json();
 
-      // 添加助手回复
-      setMessages([
-        ...newMessages,
-        {
-          role: 'assistant',
-          content: data.message,
-          listings: data.listings || [],
-        },
-      ]);
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: data.response || '抱歉，我现在无法回答你的问题。',
+        timestamp: new Date(),
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('AI Chat error:', error);
-      setMessages([
-        ...newMessages,
-        {
-          role: 'assistant',
-          content: '抱歉，我遇到了一些问题。请稍后再试。',
-        },
-      ]);
+      console.error('Error sending message:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'assistant',
+        content: '抱歉，发生了错误。请稍后再试。',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 按Enter发送
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -98,205 +90,92 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  // 点击房源卡片
-  const handleListingClick = (listingId: string) => {
-    router.push(`/listings/${listingId}`);
-    onClose();
-  };
-
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
-      {/* 背景遮罩 */}
-      <div
-        className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={onClose}
-      />
-
-      {/* 聊天窗口 */}
-      <div className="relative bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:w-[600px] h-[80vh] sm:h-[700px] flex flex-col animate-slide-up">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg w-full max-w-2xl h-[600px] flex flex-col">
         {/* 头部 */}
-        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-purple-600 to-blue-600 rounded-t-3xl">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white bg-opacity-20 rounded-full">
-              <BsRobot size={24} className="text-white" />
-            </div>
-            <div>
-              <h3 className="text-white font-bold">AI 智能助手</h3>
-              <p className="text-white text-xs opacity-90">为您推荐完美住宿</p>
-            </div>
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center space-x-2">
+            <Bot className="text-blue-600" size={24} />
+            <h2 className="text-xl font-semibold">AI 旅行助手</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition"
+            className="text-gray-500 hover:text-gray-700"
           >
-            <IoClose size={24} className="text-white" />
+            <X size={24} />
           </button>
         </div>
 
-        {/* 消息列表 */}
+        {/* 消息区域 */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map((message, index) => (
-            <div key={index}>
-              {/* 消息气泡 */}
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
               <div
-                className={`flex ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                className={`max-w-[80%] rounded-lg p-3 ${
+                  message.type === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-800'
                 }`}
               >
-                <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                    message.role === 'user'
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
+                <div className="flex items-start space-x-2">
+                  {message.type === 'assistant' && (
+                    <Bot size={16} className="mt-1 flex-shrink-0" />
+                  )}
+                  {message.type === 'user' && (
+                    <User size={16} className="mt-1 flex-shrink-0" />
+                  )}
+                  <div className="whitespace-pre-wrap">{message.content}</div>
+                </div>
+                <div className="text-xs opacity-70 mt-1">
+                  {message.timestamp.toLocaleTimeString()}
                 </div>
               </div>
-
-              {/* 房源卡片 */}
-              {message.listings && message.listings.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {message.listings.map((listing) => (
-                    <div
-                      key={listing.id}
-                      onClick={() => handleListingClick(listing.id)}
-                      className="
-                        bg-white
-                        border
-                        rounded-xl
-                        p-3
-                        hover:shadow-md
-                        cursor-pointer
-                        transition
-                        flex
-                        gap-3
-                      "
-                    >
-                      {/* 房源图片 */}
-                      <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                        <img
-                          src={listing.imageSrc}
-                          alt={listing.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-
-                      {/* 房源信息 */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-sm truncate">
-                          {listing.title}
-                        </h4>
-                        <p className="text-xs text-gray-500">
-                          {listing.locationValue} • {listing.category}
-                        </p>
-                        <p className="text-xs text-gray-600 mt-1">
-                          {listing.guestCount} 客人 • {listing.roomCount} 卧室
-                        </p>
-                        <p className="text-sm font-semibold text-purple-600 mt-1">
-                          ${listing.price} / 晚
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           ))}
-
-          {/* 加载动画 */}
+          
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-gray-100 rounded-2xl px-4 py-2">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100" />
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200" />
+              <div className="bg-gray-100 rounded-lg p-3">
+                <div className="flex items-center space-x-2">
+                  <Bot size={16} />
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
                 </div>
               </div>
             </div>
           )}
-
+          
           <div ref={messagesEndRef} />
         </div>
 
-        {/* 输入框 */}
-        <div className="p-4 border-t bg-gray-50">
-          <div className="flex gap-2">
-            <input
-              type="text"
+        {/* 输入区域 */}
+        <div className="p-4 border-t">
+          <div className="flex space-x-2">
+            <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="描述你的需求..."
+              placeholder="输入你的问题..."
+              className="flex-1 p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={2}
               disabled={isLoading}
-              className="
-                flex-1
-                px-4
-                py-3
-                border
-                rounded-full
-                focus:outline-none
-                focus:ring-2
-                focus:ring-purple-500
-                disabled:bg-gray-100
-                disabled:cursor-not-allowed
-              "
             />
             <button
               onClick={handleSend}
               disabled={!input.trim() || isLoading}
-              className="
-                px-6
-                py-3
-                bg-purple-600
-                text-white
-                rounded-full
-                hover:bg-purple-700
-                disabled:bg-gray-300
-                disabled:cursor-not-allowed
-                transition
-                flex
-                items-center
-                gap-2
-              "
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white p-3 rounded-lg transition-colors"
             >
-              <IoSend size={20} />
+              <Send size={20} />
             </button>
-          </div>
-
-          {/* 快捷建议 */}
-          <div className="mt-3 flex flex-wrap gap-2">
-            {[
-              '海边的房子',
-              '适合家庭的',
-              '预算$200-300',
-              '现代公寓',
-            ].map((suggestion) => (
-              <button
-                key={suggestion}
-                onClick={() => setInput(suggestion)}
-                disabled={isLoading}
-                className="
-                  px-3
-                  py-1
-                  text-xs
-                  bg-white
-                  border
-                  border-purple-200
-                  text-purple-600
-                  rounded-full
-                  hover:bg-purple-50
-                  disabled:opacity-50
-                  disabled:cursor-not-allowed
-                  transition
-                "
-              >
-                {suggestion}
-              </button>
-            ))}
           </div>
         </div>
       </div>
@@ -305,4 +184,3 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
 };
 
 export default AIChatModal;
-

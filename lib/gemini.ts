@@ -1,3 +1,6 @@
+// 加载环境变量
+require('dotenv').config({ path: '.env.local' });
+
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 if (!process.env.GEMINI_API_KEY) {
@@ -9,12 +12,12 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // 对话模型（用于聊天）
 export const chatModel = genAI.getGenerativeModel({
-  model: 'gemini-pro',
+  model: 'gemini-2.5-flash',
 });
 
 // Embedding 模型（用于向量搜索）
 export const embeddingModel = genAI.getGenerativeModel({
-  model: 'embedding-001',
+  model: 'text-embedding-004',
 });
 
 // 生成文本 embedding

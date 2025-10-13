@@ -64,7 +64,7 @@ npm install
 ```
 
 3. **配置环境变量**
-创建 `.env` 文件并添加以下配置：
+创建 `.env.local` 文件并添加以下配置：
 ```env
 # 数据库配置
 DATABASE_URL="mongodb://localhost:27017/airbnb-clone"
@@ -72,6 +72,11 @@ DATABASE_URL="mongodb://localhost:27017/airbnb-clone"
 # NextAuth 配置
 NEXTAUTH_SECRET="your-secret-key-here"
 NEXTAUTH_URL="http://localhost:3000"
+
+# AI 功能配置（新）
+GEMINI_API_KEY="your-gemini-api-key"
+NEXT_PUBLIC_SUPABASE_URL="your-supabase-url"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-supabase-anon-key"
 
 # Google OAuth (可选)
 GOOGLE_CLIENT_ID=""
@@ -103,7 +108,13 @@ npx prisma generate
 npx prisma db push
 ```
 
-6. **启动开发服务器**
+6. **生成 AI Embeddings（可选）**
+```bash
+# 为房源生成向量 embeddings
+npm run generate-embeddings
+```
+
+7. **启动开发服务器**
 ```bash
 npm run dev
 ```
@@ -120,6 +131,11 @@ npm run dev
 - ✅ 响应式设计
 - ✅ 地图集成
 - ✅ 图片上传
+- ✅ **AI 智能助手**（新功能）
+  - 💬 自然语言搜索房源
+  - 🤖 Multi-Agent 协作系统
+  - 🔍 语义搜索和智能推荐
+  - 📊 基于 RAG 技术
 
 ### 测试账户
 - 邮箱: `test@example.com`
@@ -131,14 +147,24 @@ npm run dev
 ├── app/                    # Next.js 13 App Router
 │   ├── actions/           # 服务端操作
 │   ├── api/               # API路由
+│   │   └── ai-chat/      # AI 聊天 API（新）
 │   └── (pages)/           # 页面组件
 ├── components/            # React组件
+│   ├── ai/               # AI 组件（新）
+│   │   ├── AIChatButton.tsx
+│   │   └── AIChatModal.tsx
 │   ├── inputs/           # 表单组件
 │   ├── listing/          # 房源相关组件
 │   ├── models/           # 模态框组件
 │   └── navbar/           # 导航组件
 ├── lib/                   # 工具库
+│   ├── ai/               # AI 逻辑（新）
+│   │   └── agents.ts     # Multi-Agent 系统
+│   ├── gemini.ts         # Gemini AI 配置（新）
+│   └── supabase.ts       # Vector Database（新）
 ├── prisma/               # 数据库模式
+├── scripts/              # 脚本
+│   └── generate-embeddings.ts  # 生成向量（新）
 └── public/               # 静态资源
 ```
 
@@ -206,6 +232,15 @@ npm run dev
 npm i -g vercel
 vercel --prod
 ```
+
+**⚠️ Vercel 环境变量配置**：
+除了基础配置外，还需添加 AI 功能环境变量：
+- `GEMINI_API_KEY` - Google Gemini API 密钥
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase 项目 URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase 公开密钥
+
+详细配置步骤：📖 [VERCEL_AI_SETUP.md](./VERCEL_AI_SETUP.md)
+
 **注意**：需配合 MongoDB Atlas 使用
 
 #### Railway（$5/月免费额度）
