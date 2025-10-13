@@ -114,76 +114,78 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
         {/* 消息区域 */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
+            <div key={message.id}>
               <div
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  message.type === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-800'
-                }`}
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div className="flex items-start space-x-2">
-                  {message.type === 'assistant' && (
-                    <Bot size={16} className="mt-1 flex-shrink-0" />
-                  )}
-                  {message.type === 'user' && (
-                    <User size={16} className="mt-1 flex-shrink-0" />
-                  )}
-                  <div className="whitespace-pre-wrap">{message.content}</div>
-                </div>
-                <div className="text-xs opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString()}
+                <div
+                  className={`max-w-[80%] rounded-lg p-3 ${
+                    message.type === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}
+                >
+                  <div className="flex items-start space-x-2">
+                    {message.type === 'assistant' && (
+                      <Bot size={16} className="mt-1 flex-shrink-0" />
+                    )}
+                    {message.type === 'user' && (
+                      <User size={16} className="mt-1 flex-shrink-0" />
+                    )}
+                    <div className="whitespace-pre-wrap">{message.content}</div>
+                  </div>
+                  <div className="text-xs opacity-70 mt-1">
+                    {message.timestamp.toLocaleTimeString()}
+                  </div>
                 </div>
               </div>
+              
+              {/* 如果有房源推荐，显示房源卡片 */}
+              {message.listings && message.listings.length > 0 && (
+                <div className="flex justify-start mt-2">
+                  <div className="space-y-2 max-w-[80%]">
+                    {message.listings.map((listing: any) => (
+                      <a
+                        key={listing.id}
+                        href={`/listings/${listing.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer"
+                      >
+                        <div className="flex items-start space-x-3">
+                          {listing.imageSrc && (
+                            <img
+                              src={listing.imageSrc}
+                              alt={listing.title}
+                              className="w-20 h-20 object-cover rounded-md flex-shrink-0"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm text-gray-900 truncate">
+                              {listing.title}
+                            </h3>
+                            <p className="text-xs text-gray-600 mt-1">
+                              📍 {listing.locationValue} • {listing.category}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              👥 最多 {listing.guestCount} 人
+                            </p>
+                            <p className="text-sm font-bold text-blue-600 mt-1">
+                              ${listing.price}/晚
+                            </p>
+                            {listing.recommendationReasons && listing.recommendationReasons.length > 0 && (
+                              <p className="text-xs text-green-600 mt-1">
+                                ✅ {listing.recommendationReasons.join('、')}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            
-            {/* 如果有房源推荐，显示房源卡片 */}
-            {message.listings && message.listings.length > 0 && (
-              <div className="mt-2 space-y-2 max-w-[80%]">
-                {message.listings.map((listing: any) => (
-                  <a
-                    key={listing.id}
-                    href={`/listings/${listing.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer"
-                  >
-                    <div className="flex items-start space-x-3">
-                      {listing.imageSrc && (
-                        <img
-                          src={listing.imageSrc}
-                          alt={listing.title}
-                          className="w-20 h-20 object-cover rounded-md flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm text-gray-900 truncate">
-                          {listing.title}
-                        </h3>
-                        <p className="text-xs text-gray-600 mt-1">
-                          📍 {listing.locationValue} • {listing.category}
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          👥 最多 {listing.guestCount} 人
-                        </p>
-                        <p className="text-sm font-bold text-blue-600 mt-1">
-                          ${listing.price}/晚
-                        </p>
-                        {listing.recommendationReasons && listing.recommendationReasons.length > 0 && (
-                          <p className="text-xs text-green-600 mt-1">
-                            ✅ {listing.recommendationReasons.join('、')}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
           ))}
           
           {isLoading && (
