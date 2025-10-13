@@ -180,8 +180,14 @@ export async function bookingAgent(listings: any[]): Promise<AgentResult> {
   }
 }
 
+// Multi-Agent 编排结果
+export interface OrchestrationResult {
+  message: string;
+  listings: any[];
+}
+
 // Multi-Agent 编排器
-export async function orchestrateAgents(query: string): Promise<string> {
+export async function orchestrateAgents(query: string): Promise<OrchestrationResult> {
   try {
     console.log('🤖 Multi-Agent 系统开始处理查询:', query);
 
@@ -190,14 +196,17 @@ export async function orchestrateAgents(query: string): Promise<string> {
     console.log('🔍 SearchAgent 结果:', searchResult.listings.length, '个房源');
 
     if (searchResult.listings.length === 0) {
-      return `抱歉，我没有找到符合你要求的房源。请尝试使用不同的关键词，比如：
+      return {
+        message: `抱歉，我没有找到符合你要求的房源。请尝试使用不同的关键词，比如：
       
 • "海边的房子"
 • "便宜的房源"  
 • "适合家庭的大房子"
 • "有游泳池的豪华别墅"
 
-或者告诉我你的具体需求，我会帮你找到最合适的房源！`;
+或者告诉我你的具体需求，我会帮你找到最合适的房源！`,
+        listings: []
+      };
     }
 
     // 2. 推荐 Agent
@@ -211,30 +220,24 @@ export async function orchestrateAgents(query: string): Promise<string> {
     // 4. 生成最终回复
     const topListings = bookingResult.listings.slice(0, 5); // 返回前5个最佳推荐
 
-    let response = `🎉 我为你找到了 ${topListings.length} 个完美的房源！\n\n`;
+    let message = `🎉 我为你找到了 ${topListings.length} 个完美的房源！\n\n`;
+    message += `💡 点击下方房源卡片查看详情和预订\n`;
+    message += `🔍 如果需要调整搜索条件，随时告诉我！`;
 
-    topListings.forEach((listing, index) => {
-      const reasons = listing.recommendationReasons?.join('、') || '符合你的需求';
-      response += `**${index + 1}. ${listing.title}**\n`;
-      response += `📍 ${listing.locationValue}\n`;
-      response += `💰 $${listing.price}/晚\n`;
-      response += `👥 最多 ${listing.guestCount} 人\n`;
-      response += `🏠 类型: ${listing.category}\n`;
-      response += `✅ ${reasons}\n`;
-      response += `📅 ${listing.bookingInfo}\n\n`;
-    });
-
-    response += `💡 想了解更多详情？点击房源卡片查看完整信息！\n\n`;
-    response += `🔍 如果你需要调整搜索条件，随时告诉我！`;
-
-    return response;
+    return {
+      message,
+      listings: topListings
+    };
   } catch (error) {
     console.error('Multi-Agent Orchestration Error:', error);
-    return `抱歉，我在处理你的请求时遇到了问题。请稍后再试，或者尝试重新描述你的需求。
+    return {
+      message: `抱歉，我在处理你的请求时遇到了问题。请稍后再试，或者尝试重新描述你的需求。
 
 常见搜索示例：
 • "我想找海边的房子"
 • "推荐一些价格便宜的房源"
-• "帮我找个适合家庭的大房子"`;
+• "帮我找个适合家庭的大房子"`,
+      listings: []
+    };
   }
 }

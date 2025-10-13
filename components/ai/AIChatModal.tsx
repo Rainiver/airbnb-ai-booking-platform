@@ -8,6 +8,7 @@ interface Message {
   type: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  listings?: any[];
 }
 
 interface AIChatModalProps {
@@ -66,6 +67,7 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
         type: 'assistant',
         content: data.response || '抱歉，我现在无法回答你的问题。',
         timestamp: new Date(),
+        listings: data.listings || [],
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -137,6 +139,51 @@ const AIChatModal: React.FC<AIChatModalProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
             </div>
+            
+            {/* 如果有房源推荐，显示房源卡片 */}
+            {message.listings && message.listings.length > 0 && (
+              <div className="mt-2 space-y-2 max-w-[80%]">
+                {message.listings.map((listing: any) => (
+                  <a
+                    key={listing.id}
+                    href={`/listings/${listing.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer"
+                  >
+                    <div className="flex items-start space-x-3">
+                      {listing.imageSrc && (
+                        <img
+                          src={listing.imageSrc}
+                          alt={listing.title}
+                          className="w-20 h-20 object-cover rounded-md flex-shrink-0"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm text-gray-900 truncate">
+                          {listing.title}
+                        </h3>
+                        <p className="text-xs text-gray-600 mt-1">
+                          📍 {listing.locationValue} • {listing.category}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          👥 最多 {listing.guestCount} 人
+                        </p>
+                        <p className="text-sm font-bold text-blue-600 mt-1">
+                          ${listing.price}/晚
+                        </p>
+                        {listing.recommendationReasons && listing.recommendationReasons.length > 0 && (
+                          <p className="text-xs text-green-600 mt-1">
+                            ✅ {listing.recommendationReasons.join('、')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
           ))}
           
           {isLoading && (

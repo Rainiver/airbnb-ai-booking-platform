@@ -13,9 +13,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 使用 Multi-Agent 系统处理用户查询
-    const response = await orchestrateAgents(message);
+    const result = await orchestrateAgents(message);
 
-    return NextResponse.json({ response });
+    return NextResponse.json({ 
+      response: result.message,
+      listings: result.listings 
+    });
   } catch (error) {
     console.error('AI Chat API Error:', error);
     return NextResponse.json(
