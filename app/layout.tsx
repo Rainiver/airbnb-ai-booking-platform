@@ -7,6 +7,7 @@ import RegisterModal from "@/components/models/RegisterModal";
 import RentModal from "@/components/models/RentModal";
 import SearchModal from "@/components/models/SearchModal";
 import Navbar from "@/components/navbar/Navbar";
+import AIChatButton from "@/components/ai/AIChatButton";
 import { Nunito } from "next/font/google";
 import "../styles/globals.css";
 import getCurrentUser from "./actions/getCurrentUser";
@@ -38,6 +39,7 @@ export default async function RootLayout({
           <LoginModal />
           <RentModal />
           <Navbar currentUser={currentUser} />
+          <AIChatButton />
         </ClientOnly>
         <div className="pb-20 pt-28">{children}</div>
         <Footer />
