@@ -17,27 +17,7 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Build Docker image
-        run: |
-          docker build -t ${{ github.repository }}:latest .
-
-      - name: Login to registry
-        if: env.REGISTRY != ''
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.REGISTRY_USER }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
-
-      - name: Push image
-        if: env.REGISTRY != ''
-        run: |
-          IMAGE=${{ env.REGISTRY }}/${{ github.repository }}:latest
-          docker tag ${{ github.repository }}:latest $IMAGE
-          docker push $IMAGE
-
-      - name: SSH deploy
-        continue-on-error: true
+      - name: Deploy to AWS EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -45,15 +25,49 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
-            cd ~/apps/airbnb-build || mkdir -p ~/apps/airbnb-build && cd ~/apps/airbnb-build
-            echo "PULL & RECREATE CONTAINERS"
-            echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" > .env
-            echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> .env
-            echo "NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}" >> .env
-            docker rm -f airbnb-app || true
-            docker pull ${{ env.REGISTRY }}/${{ github.repository }}:latest || true
+            
+            # 进入项目目录
+            cd ~/airbnb-ai-booking-platform || {
+              echo "首次部署，克隆仓库..."
+              git clone https://github.com/${{ github.repository }}.git ~/airbnb-ai-booking-platform
+              cd ~/airbnb-ai-booking-platform
+            }
+            
+            # 拉取最新代码
+            echo "📥 拉取最新代码..."
+            git fetch origin
+            git reset --hard origin/main
+            
+            # 创建环境变量文件
+            echo "🔧 配置环境变量..."
+            cat > .env << EOF
+            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+            NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+            FACEBOOK_ID=${{ secrets.FACEBOOK_ID }}
+            FACEBOOK_SECRET=${{ secrets.FACEBOOK_SECRET }}
+            EOF
+            
+            # 停止并删除旧容器
+            echo "🛑 停止旧容器..."
+            docker stop airbnb-app || true
+            docker rm airbnb-app || true
+            
+            # 构建新镜像
+            echo "🏗️ 构建 Docker 镜像..."
+            docker build -t airbnb-app:latest .
+            
+            # 启动新容器
+            echo "🚀 启动应用..."
             docker run -d --name airbnb-app --restart unless-stopped \
-              --env-file .env -p 3000:3000 \
-              ${{ env.REGISTRY }}/${{ github.repository }}:latest
+              --env-file .env -p 3000:3000 airbnb-app:latest
+            
+            # 清理旧镜像
+            echo "🧹 清理旧镜像..."
+            docker image prune -f
+            
+            echo "✅ 部署成功！访问 http://${{ secrets.SSH_HOST }}:3000"
 
 
