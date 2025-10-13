@@ -12,6 +12,7 @@
 - 📅 **预订系统** - 完整的预订流程和日期管理
 - 🗺️ **地图集成** - 房源位置展示和选择
 - 📱 **移动端适配** - 完全响应式设计
+- 🤖 **AI 智能助手** - RAG + Multi-Agent 系统，自然语言搜索房源（新）
 
 ## 🛠️ 技术栈
 
@@ -34,6 +35,13 @@
 - **Cloudinary** - 图片存储和CDN
 - **Google OAuth** - Google登录
 - **Facebook OAuth** - Facebook登录
+
+### AI 功能（新）
+- **Google Gemini Pro** - LLM 对话和理解
+- **Google Gemini Embeddings** - 768维向量生成
+- **Supabase Vector Database** - 向量存储和检索
+- **RAG Pipeline** - 检索增强生成
+- **Multi-Agent System** - 搜索、推荐、预订智能体协作
 
 ## 🚀 快速开始
 
@@ -208,6 +216,41 @@ vercel --prod
 - 免费层可用
 - 详见 [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
 
+## 🤖 AI 智能助手（新功能）
+
+### 功能特性
+- **自然语言搜索**：用户可以说"我想找个海边的房子，4个人，预算$200-300"
+- **语义理解**：AI 理解"浪漫的地方"、"适合家庭"等模糊需求
+- **个性化推荐**：基于用户偏好和历史行为推荐房源
+- **多轮对话**：支持连续对话，记住上下文
+- **房源卡片展示**：AI 推荐后直接显示可点击的房源卡片
+
+### 技术架构
+```
+用户查询 → Gemini LLM 理解意图 → Multi-Agent 协作
+    ↓
+┌─────────────┬──────────────┬─────────────┐
+│ SearchAgent │RecommendAgent│BookingAgent │
+│ (语义搜索)  │  (排序推荐)  │(检查可用性) │
+└─────────────┴──────────────┴─────────────┘
+    ↓
+查询 Vector DB + MongoDB → 返回结果 → LLM 生成回复
+```
+
+### 快速开始
+详细设置步骤请查看：
+- [AI_QUICK_START.md](./AI_QUICK_START.md) - 10分钟快速开始
+- [AI_SETUP_GUIDE.md](./AI_SETUP_GUIDE.md) - 详细设置指南
+- [AI_IMPLEMENTATION_SUMMARY.md](./AI_IMPLEMENTATION_SUMMARY.md) - 技术实现总结
+
+### 成本
+- ✅ **完全免费**
+- Google Gemini Pro：60 requests/min
+- Supabase Vector：500MB 存储
+- Vercel：无限部署
+
+---
+
 ## 📄 许可证
 
 MIT License
@@ -215,10 +258,12 @@ MIT License
 ## 👨‍💻 开发者
 
 这个项目展示了以下技能：
-- 全栈开发能力
+- 全栈开发能力（Next.js + TypeScript + MongoDB）
 - 现代React/Next.js技术
 - 数据库设计和ORM使用
 - 第三方API集成
+- **LLM 应用开发**（RAG + Multi-Agent）（新）
+- **AI 系统架构设计**（新）
 - 响应式设计
 - 用户体验优化
 
