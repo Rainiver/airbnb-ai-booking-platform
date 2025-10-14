@@ -23,7 +23,7 @@ export class AIResponses {
   }
 
   // Price prediction responses
-  static priceAnalysis Detailed(listing: any): string {
+  static priceAnalysisDetailed(listing: any): string {
     let msg = `🎯 Price Analysis: ${listing.title}\n\n`;
     
     if (!listing.priceInfo) {

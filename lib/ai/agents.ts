@@ -48,7 +48,7 @@ export async function searchAgent(query: string): Promise<AgentResult> {
     return {
       agent: 'SearchAgent',
       listings,
-      reasoning: `基于语义搜索找到了 ${listings.length} 个相关房源，相似度阈值 0.2`
+      reasoning: `基于语义搜索Found了 ${listings.length} 个相关房源，相似度阈值 0.2`
     };
   } catch (error) {
     console.error('SearchAgent Error:', error);
@@ -67,7 +67,7 @@ export async function recommendAgent(query: string, searchResults: any[]): Promi
       return {
         agent: 'RecommendAgent',
         listings: [],
-        reasoning: '没有找到相关房源进行推荐'
+        reasoning: '没有Found相关房源进行推荐'
       };
     }
 
@@ -141,7 +141,7 @@ export async function recommendAgent(query: string, searchResults: any[]): Promi
     return {
       agent: 'RecommendAgent',
       listings: recommendations.slice(0, 10), // 返回前10个推荐
-      reasoning: `基于用户偏好进行了智能推荐，共 ${recommendations.length} 个房源，返回前10个最佳匹配`
+      reasoning: `基于用户偏好进行了智能推荐，共 ${recommendations.length} properties，返回前10个最佳匹配`
     };
   } catch (error) {
     console.error('RecommendAgent Error:', error);
@@ -206,7 +206,7 @@ function checkDateAvailability(
   };
 }
 
-// 价格预测辅助函数
+// 价格Now辅助函数
 function predictPrice(listing: any, checkInDate?: Date): {
   currentPrice: number;
   predictedPrice: number;
@@ -215,7 +215,7 @@ function predictPrice(listing: any, checkInDate?: Date): {
 } {
   const basePrice = listing.price;
   let multiplier = 1.0;
-  let trend = '价格稳定';
+  let trend = 'Stable pricing';
 
   if (checkInDate) {
     const month = checkInDate.getMonth(); // 0-11
@@ -225,7 +225,7 @@ function predictPrice(listing: any, checkInDate?: Date): {
     if (month >= 5 && month <= 8) {
       // 夏季旺季 (6-9月)
       multiplier *= 1.3;
-      trend = '旺季价格上涨';
+      trend = 'Peak season premium';
     } else if (month === 11 || month === 0) {
       // 冬季假期 (12-1月)
       multiplier *= 1.2;
@@ -236,17 +236,17 @@ function predictPrice(listing: any, checkInDate?: Date): {
     if (dayOfWeek === 5 || dayOfWeek === 6) {
       // 周五、周六
       multiplier *= 1.15;
-      trend += '，周末加价';
+      trend += '，Weekend surcharge';
     }
 
     // 临近预订（7天内）价格调整
     const daysUntilCheckIn = Math.ceil((checkInDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     if (daysUntilCheckIn <= 7 && daysUntilCheckIn >= 0) {
       multiplier *= 0.9; // 最后一刻折扣
-      trend = '临近入住优惠价';
+      trend = 'Last-minute deal';
     } else if (daysUntilCheckIn > 60) {
       multiplier *= 0.95; // 早鸟优惠
-      trend = '提前预订优惠';
+      trend = 'Early bird discount';
     }
   }
 
@@ -266,7 +266,7 @@ function predictPrice(listing: any, checkInDate?: Date): {
   };
 }
 
-// 预订 Agent - 负责检查可用性、价格预测和预订建议
+// 预订 Agent - 负责检查可用性、价格Now和预订建议
 export async function bookingAgent(
   listings: any[], 
   options?: {
@@ -283,12 +283,12 @@ export async function bookingAgent(
       // 1. 日期可用性检查
       const dateCheck = checkDateAvailability(listing, checkIn, checkOut);
 
-      // 2. 价格预测
+      // 2. 价格Now
       const priceInfo = options?.enablePricePrediction 
         ? predictPrice(listing, checkIn)
         : null;
 
-      // 3. 计算总价
+      // 3. 计算Total
       let totalPrice = listing.price;
       if (checkIn && checkOut) {
         const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
@@ -299,12 +299,12 @@ export async function bookingAgent(
       // 4. 生成预订信息
       let bookingInfo = dateCheck.availableInfo;
       if (priceInfo) {
-        bookingInfo += `\n💰 价格: $${priceInfo.predictedPrice}/晚 (${priceInfo.priceChange})`;
+        bookingInfo += `\n💰 价格: $${priceInfo.predictedPrice}/nights (${priceInfo.priceChange})`;
         bookingInfo += `\n📊 ${priceInfo.priceTrend}`;
       }
       if (checkIn && checkOut && dateCheck.isAvailable) {
         const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
-        bookingInfo += `\n🌙 ${nights} 晚，总价: $${totalPrice}`;
+        bookingInfo += `\n🌙 ${nights} nights，Total: $${totalPrice}`;
       }
 
       return {
@@ -324,7 +324,7 @@ export async function bookingAgent(
     return {
       agent: 'BookingAgent',
       listings: availableListings,
-      reasoning: `检查了 ${availableListings.length} 个房源，${bookableListings.length} 个可预订${
+      reasoning: `检查了 ${availableListings.length} properties，${bookableListings.length} 个可预订${
         checkIn ? `，日期: ${checkIn.toLocaleDateString()} - ${checkOut?.toLocaleDateString()}` : ''
       }`
     };
@@ -433,7 +433,7 @@ export async function orchestrateAgents(
       // 新搜索
       const searchQuery = intent.searchQuery || query;
       const searchResult = await searchAgent(searchQuery);
-      console.log('🔍 SearchAgent 结果:', searchResult.listings.length, '个房源');
+      console.log('🔍 SearchAgent 结果:', searchResult.listings.length, 'properties');
       listings = searchResult.listings;
 
       if (listings.length === 0) {
@@ -448,13 +448,13 @@ export async function orchestrateAgents(
     const recommendResult = await recommendAgent(query, listings);
     console.log('💡 RecommendAgent 结果:', recommendResult.listings.length, '个推荐');
 
-    // 3. 预订 Agent（带日期和价格预测）
+    // 3. 预订 Agent（带日期和价格Now）
     const bookingResult = await bookingAgent(recommendResult.listings, {
       checkInDate: intent.checkInDate || context.currentFilters?.checkInDate,
       checkOutDate: intent.checkOutDate || context.currentFilters?.checkOutDate,
       enablePricePrediction: intent.enablePricePrediction || !!intent.checkInDate,
     });
-    console.log('📅 BookingAgent 结果:', bookingResult.listings.length, '个房源');
+    console.log('📅 BookingAgent 结果:', bookingResult.listings.length, 'properties');
 
     // 4. 更新对话上下文
     const topListings = bookingResult.listings
@@ -472,23 +472,23 @@ export async function orchestrateAgents(
     let message = '';
     
     if (isFollowUp) {
-      message = `🔄 基于之前的搜索结果，我为你筛选出 ${topListings.length} 个房源：\n\n`;
+      message = `🔄 Based on previous search, filtered ${topListings.length} ${topListings.length === 1 ? 'property' : 'properties'}:\n\n`;
     } else {
-      message = `🎉 我为你找到了 ${topListings.length} 个完美的房源！\n\n`;
+      message = `🎉 Found ${topListings.length} perfect ${topListings.length === 1 ? 'property' : 'properties'}!\n\n`;
     }
     
     if (intent.checkInDate || context.currentFilters?.checkInDate) {
       const checkIn = intent.checkInDate || context.currentFilters?.checkInDate;
       const checkOut = intent.checkOutDate || context.currentFilters?.checkOutDate;
-      message += `📅 入住日期: ${new Date(checkIn!).toLocaleDateString()}`;
+      message += `📅 Dates: ${new Date(checkIn!).toLocaleDateString()}`;
       if (checkOut) {
         message += ` - ${new Date(checkOut).toLocaleDateString()}`;
       }
       message += '\n\n';
     }
 
-    message += `💡 点击下方房源卡片查看详情和预订\n`;
-    message += `🔍 可以继续问我："这些房源哪个最便宜" 或 "什么时候预订最划算"`;
+    message += `💡 Click property cards for details\n`;
+    message += `🔍 Ask: "Which is cheapest?" or "Best time to book?"`;
 
     // 保存助手回复到历史
     addMessage(conversationId, 'assistant', message);
@@ -500,13 +500,7 @@ export async function orchestrateAgents(
   } catch (error) {
     console.error('Multi-Agent Orchestration Error:', error);
     return {
-      message: `抱歉，我在处理你的请求时遇到了问题。请稍后再试，或者尝试重新描述你的需求。
-
-常见查询示例：
-• "我想找海边的房子"
-• "推荐一些价格便宜的房源"
-• "1月1日到1月7日有哪些可用房源"
-• "这个月价格会涨吗"`,
+      message: `Sorry, I encountered an issue. Please try again or rephrase.\n\nCommon queries:\n• "Find beach houses"\n• "Available Jan 1-7?"\n• "When is cheapest time to book"`,
       listings: []
     };
   }
@@ -532,11 +526,11 @@ async function handleDateCheck(intent: any, conversationId: string): Promise<Orc
 
     const available = bookingResult.listings.filter(l => l.canBook).slice(0, 10);
     
-    let message = `📅 日期查询结果：\n\n`;
-    message += `入住: ${new Date(intent.checkInDate).toLocaleDateString()}\n`;
-    message += `退房: ${new Date(intent.checkOutDate).toLocaleDateString()}\n\n`;
-    message += `✅ 找到 ${available.length} 个可用房源！\n\n`;
-    message += `💡 点击下方房源卡片查看详情`;
+    let message = `📅 Date Availability Results:\n\n`;
+    message += `Check-in: ${new Date(intent.checkInDate).toLocaleDateString()}\n`;
+    message += `Check-out: ${new Date(intent.checkOutDate).toLocaleDateString()}\n\n`;
+    message += `✅ Found ${available.length} available ${available.length === 1 ? 'property' : 'properties'}!\n\n`;
+    message += `💡 Click cards for details`;
 
     return {
       message,
@@ -545,13 +539,13 @@ async function handleDateCheck(intent: any, conversationId: string): Promise<Orc
   } catch (error) {
     console.error('Date check error:', error);
     return {
-      message: '抱歉，检查日期时出现错误。请重新尝试。',
+      message: 'Sorry, error checking dates. Please try again.',
       listings: []
     };
   }
 }
 
-// 处理价格预测
+// 处理价格Now
 async function handlePricePredict(intent: any, conversationId: string): Promise<OrchestrationResult> {
   try {
     // 获取上下文
@@ -559,7 +553,7 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
     
     let listings: any[] = [];
     
-    // 如果指定了特定房源，只分析那个房源
+    // 如果指定了特定房源，只分析那properties
     if (intent.listingTitle) {
       console.log('🎯 分析特定房源价格:', intent.listingTitle);
       
@@ -573,11 +567,11 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
         
         if (found) {
           listings = [found];
-          console.log('✅ 在缓存中找到:', found.title);
+          console.log('✅ 在缓存中Found:', found.title);
         }
       }
       
-      // 如果缓存中没找到，去数据库查找
+      // 如果缓存中没Found，去数据库查找
       if (listings.length === 0) {
         const found = await prisma.listing.findFirst({
           where: {
@@ -596,14 +590,14 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
       
       if (listings.length === 0) {
         return {
-          message: `😕 抱歉，我没有找到名为 "${intent.listingTitle}" 的房源。\n\n💡 请先搜索房源，然后再询问价格。`,
+          message: `😕 Sorry, couldn't find "${intent.listingTitle}".\n\n💡 Search for properties first, then ask about pricing.`,
           listings: []
         };
       }
     } 
     // 如果没有指定房源，使用上次搜索结果
     else if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
-      console.log('🔄 使用上次搜索的', context.lastSearchResults.length, '个房源进行价格分析');
+      console.log('🔄 使用上次搜索的', context.lastSearchResults.length, 'properties进行价格分析');
       listings = context.lastSearchResults.slice(0, 20);
     } 
     // 否则重新搜索
@@ -612,7 +606,7 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
       listings = searchResult.listings.slice(0, 20);
     }
     
-    // 应用价格预测
+    // 应用价格Now
     const bookingResult = await bookingAgent(listings, {
       checkInDate: intent.checkInDate,
       checkOutDate: intent.checkOutDate,
@@ -626,58 +620,55 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
     // 如果是针对特定房源
     if (intent.listingTitle && resultListings.length === 1) {
       const listing = resultListings[0];
-      message = `🎯 ${listing.title} 的价格分析：\n\n`;
+      message = `🎯 Price Analysis: ${listing.title}\n\n`;
       
       if (listing.priceInfo) {
-        const trend = listing.priceInfo.priceChange.startsWith('+') ? '📈 涨价' : 
-                     listing.priceInfo.priceChange.startsWith('-') ? '📉 降价' : '➡️ 稳定';
-        
-        message += `💰 当前基础价格: $${listing.priceInfo.currentPrice}/晚\n\n`;
-        message += `📊 **最佳预订时机建议**：\n\n`;
+        message += `💰 Base Price: $${listing.priceInfo.currentPrice}/night\n\n`;
+        message += `📊 Best Time to Book:\n\n`;
         
         // 根据趋势给出建议
-        if (listing.priceInfo.priceTrend.includes('提前预订')) {
-          message += `✅ **现在预订**：享受提前预订优惠 (-5%)\n`;
-          message += `   预测价格: $${listing.priceInfo.predictedPrice}/晚\n\n`;
-          message += `📅 如果是旺季（6-9月）：价格会上涨 30%\n`;
-          message += `📅 如果是周末：价格会上涨 15%\n`;
-          message += `📅 如果临近入住（7天内）：可能有最后一刻折扣 (-10%)\n\n`;
-          message += `💡 **建议**: 提前预订锁定优惠价！`;
-        } else if (listing.priceInfo.priceTrend.includes('旺季')) {
-          message += `⚠️ **旺季价格**：当前是旺季，价格已上涨 30%\n`;
-          message += `   预测价格: $${listing.priceInfo.predictedPrice}/晚 (+${listing.priceInfo.priceChange})\n\n`;
-          message += `💡 **建议**: 考虑淡季预订可省 30%`;
-        } else if (listing.priceInfo.priceTrend.includes('周末')) {
-          message += `⚠️ **周末加价**：周五/周六价格上涨 15%\n`;
-          message += `   预测价格: $${listing.priceInfo.predictedPrice}/晚\n\n`;
-          message += `💡 **建议**: 选择周日-周四入住可省 15%`;
-        } else if (listing.priceInfo.priceTrend.includes('临近')) {
-          message += `🎉 **最后一刻优惠**：7天内预订有折扣 (-10%)\n`;
-          message += `   优惠价格: $${listing.priceInfo.predictedPrice}/晚\n\n`;
-          message += `💡 **建议**: 如果行程灵活，可以等待临近入住的优惠！`;
+        if (listing.priceInfo.priceTrend.includes('Early') || listing.priceInfo.priceTrend.includes('Advance')) {
+          message += `✅ Book Now - Early bird discount (-5%)\n`;
+          message += `   Price: $${listing.priceInfo.predictedPrice}/night\n\n`;
+          message += `📅 Summer (Jun-Sep): +30% premium\n`;
+          message += `📅 Weekends: +15% premium\n`;
+          message += `📅 Last minute (<7 days): -10% discount\n\n`;
+          message += `💡 Lock in the discount by booking early!`;
+        } else if (listing.priceInfo.priceTrend.includes('peak') || listing.priceInfo.priceTrend.includes('season')) {
+          message += `⚠️ Peak Season - Price increased 30%\n`;
+          message += `   Current: $${listing.priceInfo.predictedPrice}/night (+${listing.priceInfo.priceChange})\n\n`;
+          message += `💡 Book off-season to save 30%`;
+        } else if (listing.priceInfo.priceTrend.includes('Weekend')) {
+          message += `⚠️ Weekend Premium - Fri/Sat +15%\n`;
+          message += `   Price: $${listing.priceInfo.predictedPrice}/night\n\n`;
+          message += `💡 Book Sun-Thu to save 15%`;
+        } else if (listing.priceInfo.priceTrend.includes('Last') || listing.priceInfo.priceTrend.includes('minute')) {
+          message += `🎉 Last-Minute Deal - Book < 7 days for -10%\n`;
+          message += `   Sale Price: $${listing.priceInfo.predictedPrice}/night\n\n`;
+          message += `💡 Wait for deals if you're flexible!`;
         } else {
-          message += `➡️ 价格相对稳定\n`;
-          message += `   当前价格: $${listing.priceInfo.predictedPrice}/晚\n\n`;
-          message += `💡 **建议**: 价格平稳，任何时候预订都合适`;
+          message += `➡️ Stable Pricing\n`;
+          message += `   Current: $${listing.priceInfo.predictedPrice}/night\n\n`;
+          message += `💡 Book anytime - price is stable`;
         }
       }
       
-      message += `\n\n🎯 **想预订？** 告诉我："帮我预订 ${listing.title}，[入住日期]"`;
+      message += `\n\n🎯 Ready? Say: "Book ${listing.title}, [dates]"`;
     }
-    // 如果是多个房源
+    // 如果是多properties
     else {
-      message = `📊 价格趋势分析：\n\n`;
+      message = `📊 Price Trend Analysis:\n\n`;
       
       if (intent.checkInDate) {
-        message += `📅 查询日期: ${new Date(intent.checkInDate).toLocaleDateString()}\n\n`;
+        message += `📅 Query Date: ${new Date(intent.checkInDate).toLocaleDateString()}\n\n`;
       }
       
       // 添加上下文提示
       if (context?.lastSearchResults && context.lastSearchResults.length > 0 && !intent.listingTitle) {
-        message += `基于你之前搜索的房源，`;
+        message += `Based on your previous search - `;
       }
       
-      message += `我为你分析了 ${resultListings.length} 个房源的价格趋势：\n\n`;
+      message += `Analyzed ${resultListings.length} ${resultListings.length === 1 ? 'property' : 'properties'}:\n\n`;
       
       resultListings.forEach((listing, idx) => {
         if (listing.priceInfo) {
@@ -685,11 +676,11 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
                        listing.priceInfo.priceChange.startsWith('-') ? '📉' : '➡️';
           message += `${idx + 1}. ${listing.title}\n`;
           message += `   ${trend} ${listing.priceInfo.priceTrend}\n`;
-          message += `   原价 $${listing.priceInfo.currentPrice} → 预测 $${listing.priceInfo.predictedPrice}/晚\n\n`;
+          message += `   Was $${listing.priceInfo.currentPrice} → Now $${listing.priceInfo.predictedPrice}/night\n\n`;
         }
       });
 
-      message += `💡 点击房源卡片查看详情`;
+      message += `💡 Click cards for details`;
     }
 
     return {
@@ -699,7 +690,7 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
   } catch (error) {
     console.error('Price predict error:', error);
     return {
-      message: '抱歉，价格预测时出现错误。请重新尝试。',
+      message: 'Sorry，价格Now时出现错误。Please try again。',
       listings: []
     };
   }
@@ -709,12 +700,12 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
 async function handleBooking(intent: any, conversationId: string): Promise<OrchestrationResult> {
   try {
     const context = getConversation(conversationId);
-    let message = `🎫 预订功能提示：\n\n`;
+    let message = `🎫 Booking Assistant:\n\n`;
     
     if (!intent.listingTitle && !intent.listingId) {
-      message += `请先通过搜索找到你喜欢的房源，然后告诉我：\n\n`;
-      message += `"帮我预订 [房源名称]"\n\n`;
-      message += `例如："帮我预订 Luxury Villa 1"`;
+      message += `Please search for properties first, then:\n\n`;
+      message += `"Book [property name]"\n\n`;
+      message += `Example: "Book Luxury Villa 1"`;
       
       return {
         message,
@@ -738,11 +729,11 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
       });
       
       if (listing) {
-        console.log('✅ 在缓存中找到房源:', listing.title);
+        console.log('✅ 在缓存中Found房源:', listing.title);
       }
     }
     
-    // 2. 如果缓存中没找到，去数据库查找
+    // 2. 如果缓存中没Found，去数据库查找
     if (!listing) {
       if (intent.listingId) {
         listing = await prisma.listing.findUnique({
@@ -761,7 +752,7 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
           include: { user: true, reservations: true }
         });
         
-        // 如果没找到，尝试模糊匹配
+        // 如果没Found，尝试模糊匹配
         if (!listing) {
           const cleanQuery = intent.listingTitle.toLowerCase().replace(/\s/g, '');
           const allListings = await prisma.listing.findMany({
@@ -777,22 +768,22 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
     }
 
     if (!listing) {
-      message = `😕 抱歉，我没有找到名为 "${intent.listingTitle}" 的房源。\n\n`;
+      message = `😕 Sorry, couldn't find "${intent.listingTitle}".\n\n`;
       
       // 如果有上次搜索结果，显示可用选项
       if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
-        message += `📋 你之前搜索的房源有：\n\n`;
+        message += `📋 From your previous search:\n\n`;
         context.lastSearchResults.slice(0, 5).forEach((l: any, idx: number) => {
           message += `${idx + 1}. ${l.title}\n`;
         });
-        message += `\n💡 请告诉我："帮我预订 [房源名称]"`;
+        message += `\n💡 Tell me: "Book [property name]"`;
         
         return {
           message,
           listings: context.lastSearchResults.slice(0, 5)
         };
       } else {
-        message += `💡 请先搜索房源，然后告诉我你想预订哪一个。`;
+        message += `💡 Search first, then book.`;
         
         return {
           message,
@@ -812,9 +803,9 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
     const listingWithInfo = bookingResult.listings[0];
 
     if (!listingWithInfo.canBook) {
-      message = `😔 抱歉，${listing.title} 在所选日期不可用。\n\n`;
+      message = `😔 Sorry, ${listing.title} is unavailable for your selected dates.\n\n`;
       message += `📅 ${listingWithInfo.bookingInfo}\n\n`;
-      message += `💡 要不要试试其他日期，或者看看其他房源？`;
+      message += `💡 Try different dates or other properties?`;
       
       return {
         message,
@@ -823,8 +814,8 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
     }
 
     // 生成预订确认信息
-    message = `✅ 很好！让我帮你预订这个房源：\n\n`;
-    message += `🏠 **${listing.title}**\n`;
+    message = `✅ Perfect! Booking ${listing.title}:\n\n`;
+    message += `🏠 ${listing.title}\n`;
     message += `📍 ${listing.locationValue}\n\n`;
     
     if (hasDate) {
@@ -832,24 +823,22 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
       const checkOut = new Date(intent.checkOutDate!);
       const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
       
-      message += `📅 入住: ${checkIn.toLocaleDateString()}\n`;
-      message += `📅 退房: ${checkOut.toLocaleDateString()}\n`;
-      message += `🌙 ${nights} 晚\n\n`;
+      message += `📅 Check-in: ${checkIn.toLocaleDateString()}\n`;
+      message += `📅 Check-out: ${checkOut.toLocaleDateString()}\n`;
+      message += `🌙 ${nights} ${nights === 1 ? 'night' : 'nights'}\n\n`;
       
       if (listingWithInfo.priceInfo) {
-        message += `💰 价格: $${listingWithInfo.priceInfo.predictedPrice}/晚\n`;
+        message += `💰 Rate: $${listingWithInfo.priceInfo.predictedPrice}/night\n`;
         message += `📊 ${listingWithInfo.priceInfo.priceTrend}\n`;
-        message += `💵 总价: $${listingWithInfo.totalPrice}\n\n`;
+        message += `💵 Total: $${listingWithInfo.totalPrice}\n\n`;
       }
     } else {
-      message += `⚠️ 你还没有选择入住日期！\n\n`;
-      message += `请告诉我：\n`;
-      message += `"帮我预订 ${listing.title}，1月1日到1月7日"\n\n`;
+      message += `⚠️ No check-in date selected!\n\n`;
+      message += `Please specify:\n`;
+      message += `"Book ${listing.title}, Jan 1st to 7th"\n\n`;
     }
 
-    message += `🎯 **下一步操作**：\n`;
-    message += `请点击下方房源卡片，进入详情页完成预订流程。\n\n`;
-    message += `（目前 AI 会为你准备好所有信息，实际预订需要在房源详情页完成）`;
+    message += `🎯 Next Step:\nClick the card below to complete booking.`;
 
     return {
       message,
@@ -858,7 +847,7 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
   } catch (error) {
     console.error('Booking error:', error);
     return {
-      message: '抱歉，处理预订请求时出现错误。请重新尝试。',
+      message: 'Sorry, error processing booking. Please try again.',
       listings: []
     };
   }
