@@ -30,7 +30,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
     {
       id: '1',
       type: 'assistant',
-      content: '👋 你好！我是你的 AI 旅行助手，基于 Multi-Agent + RAG 系统\n\n🎯 我能帮你：\n\n🔍 **智能搜索**\n• "我想找海边的房子"\n• "推荐价格便宜的房源"\n\n📅 **日期查询**\n• "1月1日到1月7日有哪些可用房源"\n• "下周末有空房吗"\n\n💰 **价格预测**\n• "这个月价格会涨吗"\n• "什么时候预订最便宜"\n\n🎫 **智能预订**\n• "帮我预订 Luxury Villa 1，1月1日到1月3日"\n\n试试看吧！',
+      content: '👋 Hello! I\'m your AI Travel Assistant powered by Multi-Agent + RAG System\n\n✨ I can help you with:\n\n🔍 Smart Search\n• "Find beach houses"\n• "Recommend budget-friendly properties"\n\n📅 Date Availability\n• "What\'s available Jan 1st to 7th"\n• "Any vacancies next weekend"\n\n💰 Price Prediction\n• "When is the best time to book"\n• "Will prices go up in July"\n\n🎫 Smart Booking\n• "Book Luxury Villa 1, Jan 1st to 3rd"\n\nTry asking me something!',
       timestamp: new Date(),
     },
   ]);
@@ -106,7 +106,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: data.response || '抱歉，我现在无法回答你的问题。',
+        content: data.response || 'Sorry, I cannot answer your question right now.',
         timestamp: new Date(),
         listings: data.listings || [],
         agentStatus: { ...currentAgentStatus },
@@ -118,7 +118,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: '抱歉，发生了错误。请稍后再试。',
+        content: 'Sorry, an error occurred. Please try again later.',
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -159,29 +159,29 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
           {/* AI 状态文本 */}
           <div className="text-center space-y-2">
             <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              AI 旅行助手
+              AI Travel Assistant
             </h3>
             {isLoading && (
               <div className="space-y-2 animate-pulse">
                 {currentAgentStatus.search !== 'idle' && (
                   <p className="text-xs text-blue-600">
-                    {currentAgentStatus.search === 'active' ? '🔍 正在搜索...' : '✓ 搜索完成'}
+                    {currentAgentStatus.search === 'active' ? '🔍 Searching...' : '✓ Search Complete'}
                   </p>
                 )}
                 {currentAgentStatus.recommend !== 'idle' && (
                   <p className="text-xs text-purple-600">
-                    {currentAgentStatus.recommend === 'active' ? '💡 智能推荐中...' : '✓ 推荐完成'}
+                    {currentAgentStatus.recommend === 'active' ? '💡 Recommending...' : '✓ Recommend Complete'}
                   </p>
                 )}
                 {currentAgentStatus.booking !== 'idle' && (
                   <p className="text-xs text-pink-600">
-                    {currentAgentStatus.booking === 'active' ? '📅 检查可用性...' : '✓ 检查完成'}
+                    {currentAgentStatus.booking === 'active' ? '📅 Checking...' : '✓ Check Complete'}
                   </p>
                 )}
               </div>
             )}
             {!isLoading && (
-              <p className="text-xs text-gray-500">准备就绪</p>
+              <p className="text-xs text-gray-500">Ready</p>
             )}
           </div>
 
@@ -189,15 +189,15 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
           <div className="w-full bg-white/50 backdrop-blur-sm rounded-2xl p-4 space-y-2 text-xs">
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-blue-500" />
-              <span className="text-gray-700">搜索智能体</span>
+              <span className="text-gray-700">Search Agent</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-purple-500" />
-              <span className="text-gray-700">推荐智能体</span>
+              <span className="text-gray-700">Recommend Agent</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 rounded-full bg-pink-500" />
-              <span className="text-gray-700">预订智能体</span>
+              <span className="text-gray-700">Booking Agent</span>
             </div>
           </div>
         </div>
@@ -209,8 +209,8 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
             <div className="flex items-center space-x-3">
               <Sparkles className="text-blue-600" size={24} />
               <div>
-                <h2 className="text-xl font-semibold text-gray-800">AI 对话</h2>
-                <p className="text-xs text-gray-500">Multi-Agent RAG 系统</p>
+                <h2 className="text-xl font-semibold text-gray-800">AI Chat</h2>
+                <p className="text-xs text-gray-500">Multi-Agent RAG System</p>
               </div>
             </div>
             <button
@@ -350,7 +350,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                       <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
                       <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                     </div>
-                    <span className="text-sm text-gray-600">AI 正在思考...</span>
+                    <span className="text-sm text-gray-600">AI is thinking...</span>
                   </div>
                 </div>
               </div>
@@ -366,7 +366,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="输入你的问题..."
+                placeholder="Type your question..."
                 className="flex-1 px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/30 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400"
                 rows={2}
                 disabled={isLoading}

@@ -2,6 +2,7 @@ import { generateEmbedding } from '@/lib/gemini';
 import { semanticSearchListings } from '@/lib/supabase';
 import prisma from '@/lib/prismadb';
 import { parseUserIntent } from './intent-parser';
+import { responses } from './responses';
 import { 
   getConversation, 
   addMessage, 
@@ -437,17 +438,7 @@ export async function orchestrateAgents(
 
       if (listings.length === 0) {
         return {
-          message: `抱歉，我没有找到符合你要求的房源。请尝试使用不同的关键词，比如：
-      
-• "海边的房子"
-• "便宜的房源"  
-• "适合家庭的大房子"
-• "有游泳池的豪华别墅"
-
-你也可以：
-• 指定日期："1月1日到1月7日有哪些可用房源"
-• 询问价格："这个月价格会涨吗"
-• 直接预订："帮我预订 [房源名称]"`,
+          message: responses.noResults,
           listings: []
         };
       }
