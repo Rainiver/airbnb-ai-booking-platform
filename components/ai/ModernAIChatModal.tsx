@@ -27,7 +27,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
     {
       id: '1',
       type: 'assistant',
-      content: '👋 你好！我是你的 AI 旅行助手\n\n我可以帮你找到完美的房源！试试这样问我：\n\n• "我想找海边的房子"\n• "推荐一些价格便宜的房源"\n• "帮我找个适合家庭的大房子"',
+      content: '👋 你好！我是你的 AI 旅行助手，基于 Multi-Agent + RAG 系统\n\n🎯 我能帮你：\n\n🔍 **智能搜索**\n• "我想找海边的房子"\n• "推荐价格便宜的房源"\n\n📅 **日期查询**\n• "1月1日到1月7日有哪些可用房源"\n• "下周末有空房吗"\n\n💰 **价格预测**\n• "这个月价格会涨吗"\n• "什么时候预订最便宜"\n\n🎫 **智能预订**\n• "帮我预订 Luxury Villa 1，1月1日到1月3日"\n\n试试看吧！',
       timestamp: new Date(),
     },
   ]);
@@ -261,26 +261,68 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
                               </div>
                             )}
-                            <div className="flex-1 min-w-0">
+                            <div className="flex-1 min-w-0 space-y-1.5">
                               <h3 className="font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
                                 {listing.title}
                               </h3>
-                              <p className="text-xs text-gray-600 mt-1">
+                              <p className="text-xs text-gray-600">
                                 📍 {listing.locationValue} • {listing.category}
                               </p>
                               <p className="text-xs text-gray-600">
                                 👥 最多 {listing.guestCount} 人
                               </p>
-                              <p className="text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mt-2">
-                                ${listing.price}/晚
-                              </p>
+                              
+                              {/* 价格信息 - 增强版 */}
+                              <div className="space-y-1">
+                                {listing.priceInfo ? (
+                                  <div className="space-y-0.5">
+                                    <p className="text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                      ${listing.priceInfo.predictedPrice}/晚
+                                    </p>
+                                    {listing.priceInfo.priceChange !== '无变化' && (
+                                      <p className="text-[10px] text-gray-500">
+                                        原价 ${listing.priceInfo.currentPrice} ({listing.priceInfo.priceChange})
+                                      </p>
+                                    )}
+                                    <p className="text-[10px] text-orange-600">
+                                      📊 {listing.priceInfo.priceTrend}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <p className="text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                    ${listing.price}/晚
+                                  </p>
+                                )}
+                                
+                                {/* 总价（如果有多晚） */}
+                                {listing.totalPrice && listing.totalPrice !== listing.price && (
+                                  <p className="text-xs text-gray-700 font-semibold">
+                                    💵 总价: ${listing.totalPrice}
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* 推荐理由 */}
                               {listing.recommendationReasons && listing.recommendationReasons.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-2">
+                                <div className="flex flex-wrap gap-1">
                                   {listing.recommendationReasons.map((reason: string, idx: number) => (
                                     <span key={idx} className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
                                       ✓ {reason}
                                     </span>
                                   ))}
+                                </div>
+                              )}
+                              
+                              {/* 可用性状态 */}
+                              {listing.availability && (
+                                <div className="flex items-center space-x-1">
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                                    listing.canBook 
+                                      ? 'bg-green-100 text-green-700' 
+                                      : 'bg-red-100 text-red-700'
+                                  }`}>
+                                    {listing.canBook ? '✅ 可预订' : '❌ 不可用'}
+                                  </span>
                                 </div>
                               )}
                             </div>
