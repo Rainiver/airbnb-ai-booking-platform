@@ -1,9 +1,9 @@
-# 🏠 AI-Powered Airbnb Booking Platform
+# 🏠 AI智能旅行预订平台
 
 [![CI](https://github.com/Rainiver/airbnb-ai-booking-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Rainiver/airbnb-ai-booking-platform/actions/workflows/ci.yml)
-[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)](https://airbnb-build-master.vercel.app)
+[![Vercel](https://img.shields.io/badge/部署于-Vercel-black?logo=vercel)](https://airbnb-build-master.vercel.app)
 
-A full-stack intelligent travel booking system with **RAG + Multi-Agent AI**, featuring natural language search, price prediction, and smart booking assistance.
+基于 **RAG + Multi-Agent AI** 的全栈智能旅行预订系统，支持自然语言搜索、价格预测和智能预订辅助。
 
 ---
 
@@ -70,12 +70,12 @@ cd airbnb-ai-booking-platform
 npm install
 
 # 3. 配置环境变量 (.env.local)
-DATABASE_URL="mongodb+srv://..."
-NEXTAUTH_SECRET="your-secret"
-NEXTAUTH_URL="http://localhost:3000"
-GEMINI_API_KEY="your-gemini-key"
-NEXT_PUBLIC_SUPABASE_URL="your-supabase-url"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="your-supabase-key"
+DATABASE_URL="mongodb+srv://..."           # MongoDB数据库连接
+NEXTAUTH_SECRET="your-secret"              # 认证密钥
+NEXTAUTH_URL="http://localhost:3000"       # 应用URL
+GEMINI_API_KEY="your-gemini-key"           # Google Gemini API密钥
+NEXT_PUBLIC_SUPABASE_URL="your-supabase-url"           # Supabase URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY="your-supabase-key"      # Supabase匿名密钥
 
 # 4. 初始化数据库
 npx prisma generate
@@ -85,7 +85,7 @@ npx prisma db push
 npm run dev
 ```
 
-访问 [http://localhost:3000](http://localhost:3000)
+访问 [http://localhost:3000](http://localhost:3000) 查看应用
 
 ---
 
@@ -139,14 +139,21 @@ vercel --prod
 
 ---
 
-## 📖 文档
+## 📖 相关文档
 
-- [AI Setup Guide](./docs/AI_SETUP.md) - AI功能完整配置
-- [CI/CD Setup](./docs/CICD_SETUP.md) - GitHub Actions & Vercel部署
+- [AI功能配置指南](./docs/AI_SETUP.md) - AI功能完整配置说明
+- [CI/CD部署指南](./docs/CICD_SETUP.md) - GitHub Actions & Vercel自动部署
 
 ---
 
-**在线演示**: [airbnb-build-master.vercel.app](https://airbnb-build-master.vercel.app)  
-**GitHub**: [github.com/Rainiver/airbnb-ai-booking-platform](https://github.com/Rainiver/airbnb-ai-booking-platform)
+## 🔗 链接
 
-**License**: MIT
+- **在线演示**: [airbnb-build-master.vercel.app](https://airbnb-build-master.vercel.app)  
+- **GitHub仓库**: [github.com/Rainiver/airbnb-ai-booking-platform](https://github.com/Rainiver/airbnb-ai-booking-platform)
+- **开源协议**: MIT License
+
+---
+
+## 👨‍💻 作者
+
+如有问题或建议，欢迎提交 Issue 或 Pull Request！
