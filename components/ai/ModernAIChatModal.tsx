@@ -235,8 +235,43 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                         : 'bg-white/80 backdrop-blur-sm text-gray-800 shadow-md border border-white/20'
                     }`}
                   >
-                    <div className="whitespace-pre-wrap text-sm leading-relaxed">
-                      {message.content}
+                    <div className="text-sm leading-relaxed space-y-2">
+                      {message.content.split('\n').map((line, idx) => {
+                        // Check if line is a section header (starts with emoji + text)
+                        const isHeader = /^[🎉🔄📅🎯📊💡🔍💰✨⚠️😕😔✅].+[:：]/.test(line.trim());
+                        const isBullet = line.trim().startsWith('•');
+                        const isBold = line.includes('**');
+                        
+                        if (isHeader) {
+                          return (
+                            <div key={idx} className="font-bold text-base">
+                              {line}
+                            </div>
+                          );
+                        }
+                        
+                        if (isBullet) {
+                          return (
+                            <div key={idx} className="pl-2">
+                              {line}
+                            </div>
+                          );
+                        }
+                        
+                        if (isBold) {
+                          // Simple bold rendering for **text**
+                          const parts = line.split('**');
+                          return (
+                            <div key={idx}>
+                              {parts.map((part, i) => 
+                                i % 2 === 1 ? <strong key={i} className="font-semibold">{part}</strong> : part
+                              )}
+                            </div>
+                          );
+                        }
+                        
+                        return <div key={idx}>{line || '\u00A0'}</div>;
+                      })}
                     </div>
                     <div className={`text-[10px] mt-2 ${message.type === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
                       {message.timestamp.toLocaleTimeString()}
@@ -275,7 +310,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                                 📍 {listing.locationValue} • {listing.category}
                               </p>
                               <p className="text-xs text-gray-600">
-                                👥 最多 {listing.guestCount} 人
+                                👥 Up to {listing.guestCount} {listing.guestCount === 1 ? 'guest' : 'guests'}
                               </p>
                               
                               {/* 价格信息 - 增强版 */}
@@ -283,11 +318,11 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                                 {listing.priceInfo ? (
                                   <div className="space-y-0.5">
                                     <p className="text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                      ${listing.priceInfo.predictedPrice}/晚
+                                      ${listing.priceInfo.predictedPrice}/night
                                     </p>
-                                    {listing.priceInfo.priceChange !== '无变化' && (
+                                    {listing.priceInfo.priceChange !== '无变化' && listing.priceInfo.priceChange !== 'No change' && (
                                       <p className="text-[10px] text-gray-500">
-                                        原价 ${listing.priceInfo.currentPrice} ({listing.priceInfo.priceChange})
+                                        Was ${listing.priceInfo.currentPrice} ({listing.priceInfo.priceChange})
                                       </p>
                                     )}
                                     <p className="text-[10px] text-orange-600">
@@ -296,14 +331,14 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                                   </div>
                                 ) : (
                                   <p className="text-base font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                    ${listing.price}/晚
+                                    ${listing.price}/night
                                   </p>
                                 )}
                                 
                                 {/* 总价（如果有多晚） */}
                                 {listing.totalPrice && listing.totalPrice !== listing.price && (
                                   <p className="text-xs text-gray-700 font-semibold">
-                                    💵 总价: ${listing.totalPrice}
+                                    💵 Total: ${listing.totalPrice}
                                   </p>
                                 )}
                               </div>
@@ -327,7 +362,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                                       ? 'bg-green-100 text-green-700' 
                                       : 'bg-red-100 text-red-700'
                                   }`}>
-                                    {listing.canBook ? '✅ 可预订' : '❌ 不可用'}
+                                    {listing.canBook ? '✅ Available' : '❌ Unavailable'}
                                   </span>
                                 </div>
                               )}

@@ -620,11 +620,11 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
     // 如果是针对特定房源
     if (intent.listingTitle && resultListings.length === 1) {
       const listing = resultListings[0];
-      message = `🎯 Price Analysis: ${listing.title}\n\n`;
+      message = `🎯 **Price Analysis:** ${listing.title}\n\n`;
       
       if (listing.priceInfo) {
-        message += `💰 Base Price: $${listing.priceInfo.currentPrice}/night\n\n`;
-        message += `📊 Best Time to Book:\n\n`;
+        message += `💰 **Base Price:** $${listing.priceInfo.currentPrice}/night\n\n`;
+        message += `📊 **Best Time to Book:**\n\n`;
         
         // 根据趋势给出建议
         if (listing.priceInfo.priceTrend.includes('Early') || listing.priceInfo.priceTrend.includes('Advance')) {
@@ -653,11 +653,11 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
         }
       }
       
-      message += `\n\n🎯 Ready? Say: "Book ${listing.title}, [dates]"`;
+      message += `\n\n🎯 **Ready to book?** Say: "Book ${listing.title}, [dates]"`;
     }
     // 如果是多properties
     else {
-      message = `📊 Price Trend Analysis:\n\n`;
+      message = `📊 **Price Trend Analysis:**\n\n`;
       
       if (intent.checkInDate) {
         message += `📅 Query Date: ${new Date(intent.checkInDate).toLocaleDateString()}\n\n`;
@@ -814,31 +814,31 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
     }
 
     // 生成预订确认信息
-    message = `✅ Perfect! Booking ${listing.title}:\n\n`;
-    message += `🏠 ${listing.title}\n`;
-    message += `📍 ${listing.locationValue}\n\n`;
+    message = `✅ **Perfect! Booking ${listing.title}**\n\n`;
+    message += `🏠 **Property:** ${listing.title}\n`;
+    message += `📍 **Location:** ${listing.locationValue}\n\n`;
     
     if (hasDate) {
       const checkIn = new Date(intent.checkInDate!);
       const checkOut = new Date(intent.checkOutDate!);
       const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
       
-      message += `📅 Check-in: ${checkIn.toLocaleDateString()}\n`;
-      message += `📅 Check-out: ${checkOut.toLocaleDateString()}\n`;
-      message += `🌙 ${nights} ${nights === 1 ? 'night' : 'nights'}\n\n`;
+      message += `📅 **Check-in:** ${checkIn.toLocaleDateString()}\n`;
+      message += `📅 **Check-out:** ${checkOut.toLocaleDateString()}\n`;
+      message += `🌙 **Duration:** ${nights} ${nights === 1 ? 'night' : 'nights'}\n\n`;
       
       if (listingWithInfo.priceInfo) {
-        message += `💰 Rate: $${listingWithInfo.priceInfo.predictedPrice}/night\n`;
-        message += `📊 ${listingWithInfo.priceInfo.priceTrend}\n`;
-        message += `💵 Total: $${listingWithInfo.totalPrice}\n\n`;
+        message += `💰 **Rate:** $${listingWithInfo.priceInfo.predictedPrice}/night\n`;
+        message += `📊 **Pricing:** ${listingWithInfo.priceInfo.priceTrend}\n`;
+        message += `💵 **Total Price:** $${listingWithInfo.totalPrice}\n\n`;
       }
     } else {
-      message += `⚠️ No check-in date selected!\n\n`;
+      message += `⚠️ **No check-in date selected!**\n\n`;
       message += `Please specify:\n`;
       message += `"Book ${listing.title}, Jan 1st to 7th"\n\n`;
     }
 
-    message += `🎯 Next Step:\nClick the card below to complete booking.`;
+    message += `🎯 **Next Step:**\nClick the card below to complete booking.`;
 
     return {
       message,
