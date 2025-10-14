@@ -264,16 +264,14 @@ vercel --prod
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-See [VERCEL_AI_SETUP.md](./VERCEL_AI_SETUP.md) for details.
+See [AI Setup Guide](./docs/AI_SETUP.md) for details.
 
 ---
 
 ## 📖 Documentation
 
-- [ADVANCED_AI_FEATURES.md](./ADVANCED_AI_FEATURES.md) - Complete AI feature guide
-- [CONVERSATION_MEMORY_FEATURE.md](./CONVERSATION_MEMORY_FEATURE.md) - Context system details
-- [DEMO_SCRIPT.md](./DEMO_SCRIPT.md) - Presentation guide
-- [COMPLETE_FEATURE_SUMMARY.md](./COMPLETE_FEATURE_SUMMARY.md) - Full feature list
+- [AI Setup Guide](./docs/AI_SETUP.md) - Complete AI features setup
+- [CI/CD Setup](./docs/CICD_SETUP.md) - GitHub Actions & Vercel deployment
 
 ---
 
