@@ -235,42 +235,49 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                         : 'bg-white/80 backdrop-blur-sm text-gray-800 shadow-md border border-white/20'
                     }`}
                   >
-                    <div className="text-sm leading-relaxed space-y-2">
+                    <div className="text-sm leading-relaxed space-y-1">
                       {message.content.split('\n').map((line, idx) => {
-                        // Check if line is a section header (starts with emoji + text)
-                        const isHeader = /^[🎉🔄📅🎯📊💡🔍💰✨⚠️😕😔✅].+[:：]/.test(line.trim());
-                        const isBullet = line.trim().startsWith('•');
-                        const isBold = line.includes('**');
+                        const trimmedLine = line.trim();
                         
-                        if (isHeader) {
-                          return (
-                            <div key={idx} className="font-bold text-base">
-                              {line}
-                            </div>
-                          );
+                        // Check for empty lines
+                        if (!trimmedLine) {
+                          return <div key={idx} className="h-2" />;
                         }
                         
-                        if (isBullet) {
-                          return (
-                            <div key={idx} className="pl-2">
-                              {line}
-                            </div>
-                          );
-                        }
+                        // Check if line contains bold markers
+                        const hasBold = line.includes('**');
                         
-                        if (isBold) {
-                          // Simple bold rendering for **text**
+                        // Check if it's a bullet point
+                        const isBullet = trimmedLine.startsWith('•');
+                        
+                        // Render line with bold support
+                        const renderLine = () => {
+                          if (!hasBold) {
+                            return isBullet ? <span className="pl-2">{line}</span> : line;
+                          }
+                          
+                          // Split by ** and render bold parts
                           const parts = line.split('**');
                           return (
-                            <div key={idx}>
+                            <>
                               {parts.map((part, i) => 
-                                i % 2 === 1 ? <strong key={i} className="font-semibold">{part}</strong> : part
+                                i % 2 === 1 ? (
+                                  <strong key={i} className="font-bold text-gray-900">
+                                    {part}
+                                  </strong>
+                                ) : (
+                                  <span key={i}>{part}</span>
+                                )
                               )}
-                            </div>
+                            </>
                           );
-                        }
+                        };
                         
-                        return <div key={idx}>{line || '\u00A0'}</div>;
+                        return (
+                          <div key={idx} className={isBullet ? 'pl-2' : ''}>
+                            {renderLine()}
+                          </div>
+                        );
                       })}
                     </div>
                     <div className={`text-[10px] mt-2 ${message.type === 'user' ? 'text-blue-100' : 'text-gray-400'}`}>
