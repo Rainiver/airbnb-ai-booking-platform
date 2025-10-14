@@ -1,7 +1,7 @@
 # 🏠 AI-Powered Travel Booking Platform
 
 [![CI](https://github.com/Rainiver/airbnb-ai-booking-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Rainiver/airbnb-ai-booking-platform/actions/workflows/ci.yml)
-[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)](https://airbnb-build-master.vercel.app)
+[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)](https://airbnb-ai-booking-platform.vercel.app)
 
 Full-stack intelligent travel booking system with **RAG + Multi-Agent AI**, featuring natural language search, dynamic pricing, and smart booking assistance.
 
@@ -149,7 +149,7 @@ See [AI Setup Guide](./docs/AI_SETUP.md) for detailed configuration
 
 ## 🔗 Links
 
-- **Live Demo**: [airbnb-build-master.vercel.app](https://airbnb-build-master.vercel.app)  
+- **Live Demo**: [airbnb-ai-booking-platform.vercel.app](https://airbnb-ai-booking-platform.vercel.app)  
 - **GitHub Repository**: [github.com/Rainiver/airbnb-ai-booking-platform](https://github.com/Rainiver/airbnb-ai-booking-platform)
 - **License**: MIT
 
