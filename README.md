@@ -1,5 +1,8 @@
 # 🏠 Airbnb Clone - 全栈预订平台
 
+[![CI](https://github.com/Rainiver/airbnb-ai-booking-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/Rainiver/airbnb-ai-booking-platform/actions/workflows/ci.yml)
+[![Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?logo=vercel)](https://airbnb-build-master.vercel.app)
+
 一个功能完整的Airbnb克隆应用，使用现代技术栈构建，展示全栈开发技能。
 
 ## ✨ 项目特色

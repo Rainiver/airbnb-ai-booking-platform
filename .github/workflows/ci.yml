@@ -31,6 +31,13 @@ jobs:
       - name: Build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+          # Mock environment variables for CI build
+          DATABASE_URL: "mongodb://localhost:27017/ci_test"
+          NEXTAUTH_SECRET: "ci-test-secret-key-for-github-actions"
+          NEXTAUTH_URL: "http://localhost:3000"
+          GEMINI_API_KEY: "dummy-key-for-ci"
+          NEXT_PUBLIC_SUPABASE_URL: "https://dummy.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-key"
         run: npm run build
 
 
