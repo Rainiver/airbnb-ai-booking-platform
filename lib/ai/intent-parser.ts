@@ -13,11 +13,18 @@ export interface UserIntent {
 }
 
 // 解析用户查询，提取意图和参数
-export async function parseUserIntent(message: string): Promise<UserIntent> {
+export async function parseUserIntent(
+  message: string, 
+  conversationHistory?: string
+): Promise<UserIntent> {
   try {
+    const contextPrompt = conversationHistory 
+      ? `\n\n对话历史参考：\n${conversationHistory}\n` 
+      : '';
+    
     const prompt = `你是一个旅行助手的意图分析器。分析用户的查询，提取以下信息并以 JSON 格式返回：
 
-用户查询: "${message}"
+用户查询: "${message}"${contextPrompt}
 
 请分析并返回 JSON（只返回 JSON，不要其他内容）：
 {
@@ -41,6 +48,8 @@ export async function parseUserIntent(message: string): Promise<UserIntent> {
 1. 如果同时提到房源名称和价格问题，type 应该是 "price_predict"，并且要填写 listingTitle
 2. 如果同时提到房源名称和预订，type 应该是 "booking"
 3. listingTitle 必须是完整准确的房源名称，包括数字（如 "Seaside Retreat 31" 不是 "Seaside Retreat"）
+4. **如果对话历史中刚提到某个房源，用户说"帮我预订"，应该从历史中提取房源名称**
+5. **如果用户说"帮我预订，[日期]"，检查对话历史，提取最近提到的房源名称**
 
 日期解析规则：
 - "1月1日" → 今年或明年的1月1日（选择未来的日期）

@@ -368,14 +368,37 @@ export async function orchestrateAgents(
     const conversationSummary = getConversationSummary(context);
     console.log('📝 对话上下文:', conversationSummary);
 
-    // 1. 解析用户意图（带上下文）
-    const intent = await parseUserIntent(query);
-    console.log('🧠 用户意图:', intent.type);
+    // 构建对话历史（最近 5 条消息）
+    const recentHistory = context.messages
+      .slice(-5)
+      .map(m => `${m.role === 'user' ? '用户' : 'AI'}: ${m.content}`)
+      .join('\n');
+
+    // 1. 解析用户意图（带对话历史）
+    const intent = await parseUserIntent(query, recentHistory);
+    console.log('🧠 用户意图:', intent.type, intent.listingTitle ? `(房源: ${intent.listingTitle})` : '');
 
     // 从上下文继承过滤条件
     if (!intent.checkInDate && context.currentFilters?.checkInDate) {
       intent.checkInDate = context.currentFilters.checkInDate;
       intent.checkOutDate = context.currentFilters.checkOutDate;
+    }
+
+    // 如果是预订意图但没有房源名称，尝试从历史中提取
+    if (intent.type === 'booking' && !intent.listingTitle && !intent.listingId) {
+      // 查找最近提到的房源
+      const recentMessages = context.messages.slice(-10);
+      for (let i = recentMessages.length - 1; i >= 0; i--) {
+        const msg = recentMessages[i];
+        // 查找常见房源名称模式
+        const listingMatch = msg.content.match(/(Luxury Villa|Cozy Apartment|Modern Loft|Beach House|Mountain Cabin|City Studio|Countryside Cottage|Penthouse Suite|Garden House|Lake View Home|Seaside Retreat|Urban Oasis|Historic Mansion|Desert Lodge|Forest Cabin|Elegant Townhouse|Charming Bungalow|Stylish Condo|Rustic Farmhouse|Waterfront Property)\s*\d+/i);
+        
+        if (listingMatch) {
+          intent.listingTitle = listingMatch[0];
+          console.log('💡 从对话历史中提取房源名称:', intent.listingTitle);
+          break;
+        }
+      }
     }
 
     // 根据意图类型采取不同策略
