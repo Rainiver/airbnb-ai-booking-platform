@@ -7,290 +7,146 @@ A full-stack intelligent travel booking system with **RAG + Multi-Agent AI**, fe
 
 ---
 
-## ✨ Key Features
+## 📷 Demo演示
 
-### 🎨 Visual Design
-- **3D AI Avatar** - Apple Siri-style animated assistant
-- **Glassmorphism UI** - Modern glass-effect design
-- **Multi-Agent Visualization** - Real-time agent progress indicators
-- **Gradient Effects** - Dynamic color animations
+### 房源浏览、搜索与收藏
+<div align="center">
+  <img src="./demo/houses.gif" alt="房源功能展示" width="90%" />
+</div>
 
-### 🤖 AI Capabilities
-- **Smart Search** - Semantic understanding with 768-dim vectors
-- **Date Availability** - NLP date parsing & conflict detection
-- **Price Prediction** - Dynamic pricing with 5-factor model
-- **Smart Booking** - AI-assisted booking workflow
-- **Conversation Memory** - Context-aware multi-turn dialogue
-- **Intent Recognition** - Gemini Pro NLP
+**核心功能:**
+- 🏠 **房源浏览** - 响应式网格布局展示
+- 🔍 **智能搜索** - 位置、日期、人数多条件筛选  
+- ❤️ **收藏功能** - 一键收藏喜爱的房源
+- 📋 **房源详情** - 完整信息展示与即时预订
 
-### 💬 Supported Queries
-- **Search**: "Find beach houses for families"
-- **Dates**: "What's available Jan 1st to 7th"
-- **Pricing**: "When is the cheapest time to book"
-- **Booking**: "Book Seaside Retreat 31, Jan 1-3"
-- **Follow-up**: "Which is cheapest?" "Best time to book?"
+### 🤖 AI智能助手 (Multi-Agent系统)
+<div align="center">
+  <img src="./demo/agent.gif" alt="AI Agent智能助手" width="90%" />
+</div>
 
----
-
-## 🛠️ Tech Stack
-
-### Frontend
-- Next.js 13 (App Router)
-- TypeScript
-- Tailwind CSS
-- Canvas 2D API (3D animations)
-- Lucide React (icons)
-
-### Backend
-- Next.js API Routes
-- Prisma ORM
-- MongoDB Atlas
-- NextAuth.js
-
-### AI/ML
-- **Google Gemini Pro** - NLP & chat
-- **Google Gemini Embeddings** - 768-dim vectors
-- **Supabase Vector** - pgvector database
-- **RAG Pipeline** - Retrieval augmented generation
-
-### Infrastructure
-- Vercel (frontend + API)
-- MongoDB Atlas (database)
-- Supabase (vector DB)
+**AI核心能力:**
+- 🔍 **语义搜索** - 自然语言理解，768维向量检索
+- 📅 **日期解析** - NLP时间识别与可用性检测  
+- 💰 **价格预测** - 5因子动态定价模型
+- 🎯 **智能预订** - AI辅助完整预订流程
+- 🧠 **上下文记忆** - 多轮对话，智能推理
+- 👥 **Multi-Agent协作** - 搜索Agent + 推荐Agent + 预订Agent
+- 🎨 **3D动画界面** - Apple风格Siri动画效果
 
 ---
 
-## 🚀 Quick Start
+## ✨ 核心特性
 
-### Prerequisites
-- Node.js 18+
-- MongoDB
-- npm/yarn
+- 🎨 **现代化UI设计** - Glassmorphism玻璃态风格，3D动画效果
+- 🤖 **RAG检索增强** - 768维向量语义搜索，Supabase pgvector
+- 👥 **Multi-Agent系统** - 搜索/推荐/预订三大智能体协作
+- 💰 **动态定价引擎** - 5因子模型：季节/周末/提前/最后/节假日
+- 🧠 **对话记忆系统** - 上下文感知，多轮智能推理
+- 🎯 **意图识别** - Google Gemini Pro自然语言处理
 
-### Installation
+---
 
-1. **Clone repository**
+## 🛠️ 技术栈
+
+**前端**: Next.js 13 (App Router) · TypeScript · Tailwind CSS · Canvas 2D API
+
+**后端**: Next.js API Routes · Prisma ORM · MongoDB Atlas · NextAuth.js
+
+**AI/ML**: Google Gemini Pro (NLP) · Gemini Embeddings (768-dim) · Supabase Vector (pgvector) · RAG Pipeline
+
+**部署**: Vercel (前端+API) · MongoDB Atlas (数据库) · Supabase (向量数据库)
+
+---
+
+## 🚀 快速开始
+
 ```bash
+# 1. 克隆项目
 git clone https://github.com/Rainiver/airbnb-ai-booking-platform.git
 cd airbnb-ai-booking-platform
-```
 
-2. **Install dependencies**
-```bash
+# 2. 安装依赖
 npm install
-```
 
-3. **Configure environment**
-Create `.env.local`:
-```env
-# Database
+# 3. 配置环境变量 (.env.local)
 DATABASE_URL="mongodb+srv://..."
-
-# Auth
 NEXTAUTH_SECRET="your-secret"
 NEXTAUTH_URL="http://localhost:3000"
-
-# AI Features
 GEMINI_API_KEY="your-gemini-key"
 NEXT_PUBLIC_SUPABASE_URL="your-supabase-url"
 NEXT_PUBLIC_SUPABASE_ANON_KEY="your-supabase-key"
-```
 
-4. **Setup database**
-```bash
+# 4. 初始化数据库
 npx prisma generate
 npx prisma db push
-```
 
-5. **Generate embeddings** (optional)
-```bash
-npm run generate-embeddings
-```
-
-6. **Start development server**
-```bash
+# 5. 启动开发服务器
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000)
+访问 [http://localhost:3000](http://localhost:3000)
 
 ---
 
-## 🤖 AI Assistant Features
+## 🏗️ 系统架构
 
-### 1. Smart Search
-Natural language property search with semantic understanding.
-
-**Example**:
 ```
-User: "Find beach houses for families"
-AI: [Returns 5 beach properties suitable for families]
-    - Seaside Retreat 31 (5 guests)
-    - City Studio 46 (4 guests)
-    ...
+用户查询 → 意图解析(Gemini Pro) → Agent编排
+              ↓
+  ┌─────────┬─────────┬─────────┐
+  │ 搜索Agent │ 推荐Agent │ 预订Agent │
+  └─────────┴─────────┴─────────┘
+              ↓
+  向量检索 + MongoDB → LLM生成响应
 ```
 
-### 2. Date Availability Check
-Specify dates in natural language, AI checks availability.
-
-**Example**:
-```
-User: "What's available Jan 1st to 7th"
-AI: [Shows available properties with total price for 6 nights]
-    ✅ Found 10 available properties!
-    Total: $348 (6 nights)
-```
-
-### 3. Dynamic Price Prediction
-Multi-factor pricing model considers:
-- Season (Summer +30%, Winter holidays +20%)
-- Weekends (+15%)
-- Advance booking (-5%)
-- Last-minute (<7 days, -10%)
-
-**Example**:
-```
-User: "When is cheapest to book Seaside Retreat 31"
-AI: 🎯 Price Analysis: Seaside Retreat 31
-    
-    💰 Base: $382/night
-    
-    📊 Best Time to Book:
-    ✅ Book Now - Early bird discount
-       Price: $363/night (-5%)
-    
-    📅 Summer: +30% premium
-    📅 Weekends: +15% premium
-    
-    💡 Lock in discount by booking early!
-```
-
-### 4. Conversation Memory
-AI remembers context across multiple turns.
-
-**Example**:
-```
-Turn 1:
-User: "Find beach houses for families"
-AI: [Shows 5 properties]
-
-Turn 2:
-User: "When is cheapest to book Seaside Retreat 31"
-AI: [Analyzes ONLY that specific property from previous results]
-
-Turn 3:
-User: "Book it, Jan 1-3"
-AI: [Infers "Seaside Retreat 31" from context]
-    ✅ Booking Seaside Retreat 31
-    Total: $726 (2 nights)
-```
+**工作流程**: 意图识别 → 向量语义搜索(768-dim) → 多因子排序 → 可用性检查 → 价格预测 → 上下文响应生成
 
 ---
 
-## 🏗️ Architecture
+## 📊 性能指标
 
-### Multi-Agent System
-```
-User Query → Intent Parser → Agent Orchestration
-                ↓
-    ┌──────────┬────────────┬──────────┐
-    │  Search  │ Recommend  │ Booking  │
-    │  Agent   │   Agent    │  Agent   │
-    └──────────┴────────────┴──────────┘
-                ↓
-    Vector DB + MongoDB → Results → LLM Response
-```
-
-### Data Flow
-1. **Intent Recognition** - Gemini Pro extracts intent & parameters
-2. **Search Agent** - Vector semantic search (768-dim)
-3. **Recommend Agent** - Multi-factor ranking & filtering
-4. **Booking Agent** - Availability check & price prediction
-5. **Response Generation** - Context-aware formatted response
+- ⚡ **响应时间**: 1-3秒 (缓存<1秒)
+- 🎯 **准确率**: 语义搜索>90%，上下文理解>95%
+- 📦 **数据规模**: 75房源 × 768维向量嵌入
+- 🎨 **动画**: 60fps Canvas渲染
+- 💰 **成本**: $0/月 (免费层部署)
 
 ---
 
-## 📊 Performance
+## 🚀 部署
 
-- **Response Time**: 1-3 seconds (< 1s for follow-ups)
-- **Accuracy**: >90% semantic search, >95% context understanding
-- **Data**: 75 properties × 768-dim embeddings
-- **Animation**: 60fps Canvas rendering
-- **Cost**: $0/month (free tier)
-
----
-
-## 🎯 Resume Highlights
-
-### Project Description
-AI-powered travel booking platform with RAG + Multi-Agent architecture, featuring natural language search, dynamic pricing, and context-aware conversation.
-
-### Technical Achievements
-- Implemented Multi-Agent collaboration system (Search + Recommend + Booking)
-- Developed NLP intent parser with >95% accuracy
-- Created dynamic pricing engine with 5-factor model
-- Built conversation memory system for context-aware responses
-- Designed 3D Canvas animation (Apple-style UI)
-- Integrated Vector Database for semantic search
-
-### Tech Stack
-- Frontend: Next.js 13, TypeScript, Tailwind, Canvas API
-- AI/ML: Gemini Pro, Supabase Vector, RAG
-- Backend: Prisma, MongoDB, NextAuth
-- Infrastructure: Vercel, MongoDB Atlas, Supabase
-
-### Key Metrics
-- 75 properties with 768-dim embeddings
-- <3s response time, <1s for cached queries
-- >90% search accuracy, >95% context understanding
-- 60fps animation, responsive design
-- $0/month deployment cost
-
----
-
-## 🚀 Deployment
-
-### Vercel
 ```bash
+# Vercel一键部署
 npm i -g vercel
 vercel --prod
 ```
 
-**Required Environment Variables**:
-- `DATABASE_URL`
-- `NEXTAUTH_SECRET`
-- `NEXTAUTH_URL`
-- `GEMINI_API_KEY`
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+**必需环境变量**: `DATABASE_URL` · `NEXTAUTH_SECRET` · `NEXTAUTH_URL` · `GEMINI_API_KEY` · `NEXT_PUBLIC_SUPABASE_URL` · `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-See [AI Setup Guide](./docs/AI_SETUP.md) for details.
+详细配置见 [AI Setup Guide](./docs/AI_SETUP.md)
 
 ---
 
-## 📖 Documentation
+## 🎯 项目亮点
 
-- [AI Setup Guide](./docs/AI_SETUP.md) - Complete AI features setup
-- [CI/CD Setup](./docs/CICD_SETUP.md) - GitHub Actions & Vercel deployment
-
----
-
-## 🎉 What Makes This Special
-
-1. **True AI Integration** - Not just a chatbot, but intelligent agents working together
-2. **Context-Aware** - Remembers conversation, no need to repeat information
-3. **Price Intelligence** - Predicts best booking time, helps users save money
-4. **Beautiful UI** - Apple-quality design with smooth animations
-5. **Production Ready** - Deployed and fully functional
+- ✨ **真正的AI集成** - 非简单聊天机器人，而是Multi-Agent智能体协作系统
+- 🧠 **上下文感知** - 对话记忆，无需重复信息
+- 💡 **价格智能** - 预测最佳预订时间，帮助用户省钱
+- 🎨 **精美UI** - Apple级别设计，流畅动画
+- 🚀 **生产就绪** - 已部署上线，完整可用
 
 ---
 
-## 📞 Contact
+## 📖 文档
 
-**GitHub**: https://github.com/Rainiver/airbnb-ai-booking-platform
+- [AI Setup Guide](./docs/AI_SETUP.md) - AI功能完整配置
+- [CI/CD Setup](./docs/CICD_SETUP.md) - GitHub Actions & Vercel部署
 
 ---
 
-**Version**: 5.1 - English Edition
-**Status**: ✅ Production Ready
+**在线演示**: [airbnb-build-master.vercel.app](https://airbnb-build-master.vercel.app)  
+**GitHub**: [github.com/Rainiver/airbnb-ai-booking-platform](https://github.com/Rainiver/airbnb-ai-booking-platform)
+
 **License**: MIT
