@@ -13,27 +13,27 @@ import {
   type ConversationContext
 } from './conversation-memory';
 
-// Agent 类型定义
+// Agent type definitions
 export interface AgentResult {
   agent: string;
   listings: any[];
   reasoning: string;
 }
 
-// 搜索 Agent - 负责语义搜索
+// Search Agent - handles semantic search
 export async function searchAgent(query: string): Promise<AgentResult> {
   try {
-    // 生成查询向量
+    // Generate query embedding
     const queryEmbedding = await generateEmbedding(query);
     
-    // 语义搜索
+    // Semantic search
     const searchResults = await semanticSearchListings(
       queryEmbedding,
-      0.2, // 相似度阈值（降低以匹配实际数据）
-      20   // 返回数量
+      0.2, // Similarity threshold (lowered to match actual data)
+      20   // Number of results to return
     );
 
-    // 获取完整的房源信息
+    // Get full listing information
     const listingIds = searchResults.map(result => result.listing_id);
     const listings = await prisma.listing.findMany({
       where: {
@@ -60,7 +60,7 @@ export async function searchAgent(query: string): Promise<AgentResult> {
   }
 }
 
-// 推荐 Agent - 负责智能推荐和排序
+// Recommend Agent - handles intelligent recommendations and sorting
 export async function recommendAgent(query: string, searchResults: any[]): Promise<AgentResult> {
   try {
     if (searchResults.length === 0) {
@@ -71,12 +71,12 @@ export async function recommendAgent(query: string, searchResults: any[]): Promi
       };
     }
 
-    // 基于查询内容进行智能推荐
+    // Intelligent recommendation based on query
     const recommendations = searchResults.map(listing => {
       let score = 0;
       let reasons: string[] = [];
 
-      // 价格匹配
+      // Price matching
       if (query.toLowerCase().includes('便宜') || query.toLowerCase().includes('低价')) {
         if (listing.price <= 100) {
           score += 30;
@@ -89,7 +89,7 @@ export async function recommendAgent(query: string, searchResults: any[]): Promi
         }
       }
 
-      // 位置匹配
+      // Location matching
       if (query.toLowerCase().includes('海边') || query.toLowerCase().includes('海滩')) {
         if (listing.category === 'Beach') {
           score += 25;
@@ -350,7 +350,7 @@ export async function orchestrateAgents(
   conversationId: string = 'default'
 ): Promise<OrchestrationResult> {
   try {
-    console.log('🤖 Multi-Agent 系统开始处理查询:', query);
+    console.log('🤖 Multi-Agent system processing query:', query);
 
     // 0. 获取或创建对话上下文
     let context = getConversation(conversationId);
@@ -367,17 +367,17 @@ export async function orchestrateAgents(
 
     // 获取对话摘要
     const conversationSummary = getConversationSummary(context);
-    console.log('📝 对话上下文:', conversationSummary);
-
-    // 构建对话历史（最近 5 条消息）
+    console.log('📝 Conversation context:', conversationSummary);
+    
+    // Build conversation history (last 5 messages)
     const recentHistory = context.messages
       .slice(-5)
-      .map(m => `${m.role === 'user' ? '用户' : 'AI'}: ${m.content}`)
+      .map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`)
       .join('\n');
-
-    // 1. 解析用户意图（带对话历史）
+    
+    // 1. Parse user intent (with conversation history)
     const intent = await parseUserIntent(query, recentHistory);
-    console.log('🧠 用户意图:', intent.type, intent.listingTitle ? `(房源: ${intent.listingTitle})` : '');
+    console.log('🧠 User intent:', intent.type, intent.listingTitle ? `(Listing: ${intent.listingTitle})` : '');
 
     // 从上下文继承过滤条件
     if (!intent.checkInDate && context.currentFilters?.checkInDate) {
@@ -396,7 +396,7 @@ export async function orchestrateAgents(
         
         if (listingMatch) {
           intent.listingTitle = listingMatch[0];
-          console.log('💡 从对话历史中提取房源名称:', intent.listingTitle);
+          console.log('💡 Extracted listing name from conversation history:', intent.listingTitle);
           break;
         }
       }
@@ -427,13 +427,13 @@ export async function orchestrateAgents(
 
     if (isFollowUp && context.lastSearchResults && context.lastSearchResults.length > 0) {
       // 基于上次结果进行过滤
-      console.log('🔄 基于上次搜索结果 (', context.lastSearchResults.length, '个) 进行追问');
+      console.log('🔄 Based on last search results (', context.lastSearchResults.length, 'properties) for follow-up');
       listings = context.lastSearchResults;
     } else {
-      // 新搜索
+      // New search
       const searchQuery = intent.searchQuery || query;
       const searchResult = await searchAgent(searchQuery);
-      console.log('🔍 SearchAgent 结果:', searchResult.listings.length, 'properties');
+      console.log('🔍 SearchAgent results:', searchResult.listings.length, 'properties');
       listings = searchResult.listings;
 
       if (listings.length === 0) {
@@ -444,17 +444,17 @@ export async function orchestrateAgents(
       }
     }
 
-    // 2. 推荐 Agent（考虑用户偏好）
+    // 2. Recommend Agent (considering user preferences)
     const recommendResult = await recommendAgent(query, listings);
-    console.log('💡 RecommendAgent 结果:', recommendResult.listings.length, '个推荐');
-
-    // 3. 预订 Agent（带日期和价格Now）
+    console.log('💡 RecommendAgent results:', recommendResult.listings.length, 'recommendations');
+    
+    // 3. Booking Agent (with date and price prediction)
     const bookingResult = await bookingAgent(recommendResult.listings, {
       checkInDate: intent.checkInDate || context.currentFilters?.checkInDate,
       checkOutDate: intent.checkOutDate || context.currentFilters?.checkOutDate,
       enablePricePrediction: intent.enablePricePrediction || !!intent.checkInDate,
     });
-    console.log('📅 BookingAgent 结果:', bookingResult.listings.length, 'properties');
+    console.log('📅 BookingAgent results:', bookingResult.listings.length, 'properties');
 
     // 4. 更新对话上下文
     const topListings = bookingResult.listings
@@ -490,7 +490,7 @@ export async function orchestrateAgents(
     message += `💡 Click property cards for details\n`;
     message += `🔍 Ask: "Which is cheapest?" or "Best time to book?"`;
 
-    // 保存助手回复到历史
+    // Save assistant response to history
     addMessage(conversationId, 'assistant', message);
 
     return {
@@ -506,10 +506,10 @@ export async function orchestrateAgents(
   }
 }
 
-// 处理日期检查
+// Handle date checking
 async function handleDateCheck(intent: any, conversationId: string): Promise<OrchestrationResult> {
   try {
-    // 获取所有房源
+    // Get all listings
     const allListings = await prisma.listing.findMany({
       include: {
         user: true,
@@ -545,7 +545,7 @@ async function handleDateCheck(intent: any, conversationId: string): Promise<Orc
   }
 }
 
-// 处理价格Now
+// Handle price prediction
 async function handlePricePredict(intent: any, conversationId: string): Promise<OrchestrationResult> {
   try {
     // 获取上下文
@@ -555,9 +555,9 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
     
     // 如果指定了特定房源，只分析那properties
     if (intent.listingTitle) {
-      console.log('🎯 分析特定房源价格:', intent.listingTitle);
+      console.log('🎯 Analyzing specific listing price:', intent.listingTitle);
       
-      // 先从缓存中查找
+      // Search in cache first
       if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
         const cleanQuery = intent.listingTitle.toLowerCase().replace(/\s/g, '');
         const found = context.lastSearchResults.find((l: any) => {
@@ -567,7 +567,7 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
         
         if (found) {
           listings = [found];
-          console.log('✅ 在缓存中Found:', found.title);
+          console.log('✅ Found in cache:', found.title);
         }
       }
       
@@ -597,7 +597,7 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
     } 
     // 如果没有指定房源，使用上次搜索结果
     else if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
-      console.log('🔄 使用上次搜索的', context.lastSearchResults.length, 'properties进行价格分析');
+      console.log('🔄 Using last search results -', context.lastSearchResults.length, 'properties for price analysis');
       listings = context.lastSearchResults.slice(0, 20);
     } 
     // 否则重新搜索
@@ -617,7 +617,7 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
     
     let message = '';
     
-    // 如果是针对特定房源
+    // If for a specific listing
     if (intent.listingTitle && resultListings.length === 1) {
       const listing = resultListings[0];
       message = `🎯 **Price Analysis:** ${listing.title}\n\n`;
@@ -626,7 +626,7 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
         message += `💰 **Base Price:** $${listing.priceInfo.currentPrice}/night\n\n`;
         message += `📊 **Best Time to Book:**\n\n`;
         
-        // 根据趋势给出建议
+        // Provide suggestions based on trends
         if (listing.priceInfo.priceTrend.includes('Early') || listing.priceInfo.priceTrend.includes('Advance')) {
           message += `✅ Book Now - Early bird discount (-5%)\n`;
           message += `   Price: $${listing.priceInfo.predictedPrice}/night\n\n`;
@@ -655,7 +655,7 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
       
       message += `\n\n🎯 **Ready to book?** Say: "Book ${listing.title}, [dates]"`;
     }
-    // 如果是多properties
+    // If for multiple properties
     else {
       message = `📊 **Price Trend Analysis:**\n\n`;
       
@@ -663,7 +663,7 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
         message += `📅 Query Date: ${new Date(intent.checkInDate).toLocaleDateString()}\n\n`;
       }
       
-      // 添加上下文提示
+      // Add context hint
       if (context?.lastSearchResults && context.lastSearchResults.length > 0 && !intent.listingTitle) {
         message += `Based on your previous search - `;
       }
@@ -696,7 +696,7 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
   }
 }
 
-// 处理预订请求
+// Handle booking request
 async function handleBooking(intent: any, conversationId: string): Promise<OrchestrationResult> {
   try {
     const context = getConversation(conversationId);
@@ -713,14 +713,14 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
       };
     }
 
-    // 查找指定房源
+    // Find specified listing
     let listing = null;
     
     // 1. 优先从上次搜索结果中查找（更准确，更快）
     if (intent.listingTitle && context?.lastSearchResults && context.lastSearchResults.length > 0) {
-      console.log('🔍 在上次搜索结果中查找:', intent.listingTitle);
+      console.log('🔍 Searching in last results:', intent.listingTitle);
       
-      // 移除空格进行匹配
+      // Remove spaces for matching
       const cleanQuery = intent.listingTitle.toLowerCase().replace(/\s/g, '');
       
       listing = context.lastSearchResults.find((l: any) => {
@@ -729,7 +729,7 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
       });
       
       if (listing) {
-        console.log('✅ 在缓存中Found房源:', listing.title);
+        console.log('✅ Found in cache:', listing.title);
       }
     }
     
@@ -741,7 +741,7 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
           include: { user: true, reservations: true }
         });
       } else if (intent.listingTitle) {
-        // 先尝试精确匹配
+        // Try exact match first
         listing = await prisma.listing.findFirst({
           where: {
             title: {
@@ -752,7 +752,7 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
           include: { user: true, reservations: true }
         });
         
-        // 如果没Found，尝试模糊匹配
+        // If not found, try fuzzy matching
         if (!listing) {
           const cleanQuery = intent.listingTitle.toLowerCase().replace(/\s/g, '');
           const allListings = await prisma.listing.findMany({
@@ -770,7 +770,7 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
     if (!listing) {
       message = `😕 Sorry, couldn't find "${intent.listingTitle}".\n\n`;
       
-      // 如果有上次搜索结果，显示可用选项
+      // If there are previous search results, show available options
       if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
         message += `📋 From your previous search:\n\n`;
         context.lastSearchResults.slice(0, 5).forEach((l: any, idx: number) => {
@@ -792,7 +792,7 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
       }
     }
 
-    // 检查日期和可用性
+    // Check date and availability
     const hasDate = intent.checkInDate && intent.checkOutDate;
     const bookingResult = await bookingAgent([listing], hasDate ? {
       checkInDate: intent.checkInDate,
@@ -813,7 +813,7 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
       };
     }
 
-    // 生成预订确认信息
+    // Generate booking confirmation
     message = `✅ **Perfect! Booking ${listing.title}**\n\n`;
     message += `🏠 **Property:** ${listing.title}\n`;
     message += `📍 **Location:** ${listing.locationValue}\n\n`;

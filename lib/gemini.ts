@@ -1,4 +1,4 @@
-// 加载环境变量
+// Load environment variables
 require('dotenv').config({ path: '.env.local' });
 
 import { GoogleGenerativeAI } from '@google/generative-ai';

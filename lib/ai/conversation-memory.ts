@@ -41,12 +41,12 @@ export function createConversation(conversationId: string): ConversationContext 
   return context;
 }
 
-// 获取对话上下文
+// Get conversation context
 export function getConversation(conversationId: string): ConversationContext | null {
   return conversationStore.get(conversationId) || null;
 }
 
-// 添加消息到对话历史
+// Add message to conversation history
 export function addMessage(
   conversationId: string,
   role: 'user' | 'assistant',
@@ -67,7 +67,7 @@ export function addMessage(
   }
 }
 
-// 更新当前过滤条件
+// Update current filters
 export function updateFilters(
   conversationId: string,
   filters: Partial<ConversationContext['currentFilters']>
@@ -81,7 +81,7 @@ export function updateFilters(
   };
 }
 
-// 更新上次搜索结果
+// Update last search results
 export function updateLastSearch(
   conversationId: string,
   listings: any[]
@@ -177,7 +177,7 @@ export function getConversationSummary(context: ConversationContext): string {
   return summary;
 }
 
-// 清理过期对话（可选）
+// Clean up expired conversations (optional)
 export function cleanupOldConversations(maxAge: number = 24 * 60 * 60 * 1000): void {
   const now = new Date().getTime();
   const idsToDelete: string[] = [];

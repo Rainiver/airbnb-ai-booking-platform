@@ -23,7 +23,7 @@ interface ModernAIChatModalProps {
 }
 
 const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }) => {
-  // 生成唯一对话 ID
+  // Generate unique conversation ID
   const [conversationId] = useState(() => `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   
   const [messages, setMessages] = useState<Message[]>([

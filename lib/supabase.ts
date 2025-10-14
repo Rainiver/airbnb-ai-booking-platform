@@ -1,4 +1,4 @@
-// 加载环境变量
+// Load environment variables
 require('dotenv').config({ path: '.env.local' });
 
 import { createClient } from '@supabase/supabase-js';
@@ -17,7 +17,7 @@ export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// Vector 搜索类型定义
+// Vector search type definitions
 export interface VectorSearchResult {
   listing_id: string;
   content: string;
@@ -30,7 +30,7 @@ export interface VectorSearchResult {
   similarity: number;
 }
 
-// 存储 listing embedding
+// Store listing embedding
 export async function storeListingEmbedding(
   listingId: string,
   embedding: number[],
@@ -56,7 +56,7 @@ export async function storeListingEmbedding(
   return data;
 }
 
-// 语义搜索房源
+// Semantic search房源
 export async function semanticSearchListings(
   queryEmbedding: number[],
   matchThreshold: number = 0.2,
@@ -76,7 +76,7 @@ export async function semanticSearchListings(
   return data || [];
 }
 
-// 检查 embeddings 是否已生成
+// Check if embeddings are already generated
 export async function checkEmbeddingsExist(): Promise<boolean> {
   const { count, error } = await supabase
     .from('listing_embeddings')

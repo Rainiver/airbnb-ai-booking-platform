@@ -12,7 +12,7 @@ export interface UserIntent {
   enablePricePrediction?: boolean;
 }
 
-// 解析用户查询，提取意图和参数
+// Parse user query, extract intent and parameters
 export async function parseUserIntent(
   message: string, 
   conversationHistory?: string
