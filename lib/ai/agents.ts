@@ -2,6 +2,15 @@ import { generateEmbedding } from '@/lib/gemini';
 import { semanticSearchListings } from '@/lib/supabase';
 import prisma from '@/lib/prismadb';
 import { parseUserIntent } from './intent-parser';
+import { 
+  getConversation, 
+  addMessage, 
+  updateFilters, 
+  updateLastSearch,
+  analyzePreferences,
+  getConversationSummary,
+  type ConversationContext
+} from './conversation-memory';
 
 // Agent 类型定义
 export interface AgentResult {
@@ -334,14 +343,40 @@ export interface OrchestrationResult {
   listings: any[];
 }
 
-// Multi-Agent 编排器（增强版）
-export async function orchestrateAgents(query: string): Promise<OrchestrationResult> {
+// Multi-Agent 编排器（增强版 + 对话记忆）
+export async function orchestrateAgents(
+  query: string, 
+  conversationId: string = 'default'
+): Promise<OrchestrationResult> {
   try {
     console.log('🤖 Multi-Agent 系统开始处理查询:', query);
 
-    // 0. 解析用户意图
+    // 0. 获取或创建对话上下文
+    let context = getConversation(conversationId);
+    if (!context) {
+      const { createConversation } = await import('./conversation-memory');
+      context = createConversation(conversationId);
+    }
+
+    // 添加用户消息到历史
+    addMessage(conversationId, 'user', query);
+
+    // 分析用户偏好
+    analyzePreferences(context);
+
+    // 获取对话摘要
+    const conversationSummary = getConversationSummary(context);
+    console.log('📝 对话上下文:', conversationSummary);
+
+    // 1. 解析用户意图（带上下文）
     const intent = await parseUserIntent(query);
     console.log('🧠 用户意图:', intent.type);
+
+    // 从上下文继承过滤条件
+    if (!intent.checkInDate && context.currentFilters?.checkInDate) {
+      intent.checkInDate = context.currentFilters.checkInDate;
+      intent.checkOutDate = context.currentFilters.checkOutDate;
+    }
 
     // 根据意图类型采取不同策略
     if (intent.type === 'date_check') {
@@ -352,15 +387,34 @@ export async function orchestrateAgents(query: string): Promise<OrchestrationRes
       return await handleBooking(intent);
     }
 
-    // 默认：搜索流程
-    // 1. 搜索 Agent
-    const searchQuery = intent.searchQuery || query;
-    const searchResult = await searchAgent(searchQuery);
-    console.log('🔍 SearchAgent 结果:', searchResult.listings.length, '个房源');
+    // 默认：搜索流程（基于上下文）
+    
+    // 检查是否是基于上次结果的追问
+    const isFollowUp = query.length < 20 && (
+      query.includes('这些') || 
+      query.includes('它们') || 
+      query.includes('最便宜') ||
+      query.includes('最贵') ||
+      query.includes('最近') ||
+      query.includes('哪个')
+    );
 
-    if (searchResult.listings.length === 0) {
-      return {
-        message: `抱歉，我没有找到符合你要求的房源。请尝试使用不同的关键词，比如：
+    let listings: any[] = [];
+
+    if (isFollowUp && context.lastSearchResults && context.lastSearchResults.length > 0) {
+      // 基于上次结果进行过滤
+      console.log('🔄 基于上次搜索结果 (', context.lastSearchResults.length, '个) 进行追问');
+      listings = context.lastSearchResults;
+    } else {
+      // 新搜索
+      const searchQuery = intent.searchQuery || query;
+      const searchResult = await searchAgent(searchQuery);
+      console.log('🔍 SearchAgent 结果:', searchResult.listings.length, '个房源');
+      listings = searchResult.listings;
+
+      if (listings.length === 0) {
+        return {
+          message: `抱歉，我没有找到符合你要求的房源。请尝试使用不同的关键词，比如：
       
 • "海边的房子"
 • "便宜的房源"  
@@ -371,39 +425,59 @@ export async function orchestrateAgents(query: string): Promise<OrchestrationRes
 • 指定日期："1月1日到1月7日有哪些可用房源"
 • 询问价格："这个月价格会涨吗"
 • 直接预订："帮我预订 [房源名称]"`,
-        listings: []
-      };
+          listings: []
+        };
+      }
     }
 
-    // 2. 推荐 Agent
-    const recommendResult = await recommendAgent(searchQuery, searchResult.listings);
+    // 2. 推荐 Agent（考虑用户偏好）
+    const recommendResult = await recommendAgent(query, listings);
     console.log('💡 RecommendAgent 结果:', recommendResult.listings.length, '个推荐');
 
     // 3. 预订 Agent（带日期和价格预测）
     const bookingResult = await bookingAgent(recommendResult.listings, {
-      checkInDate: intent.checkInDate,
-      checkOutDate: intent.checkOutDate,
+      checkInDate: intent.checkInDate || context.currentFilters?.checkInDate,
+      checkOutDate: intent.checkOutDate || context.currentFilters?.checkOutDate,
       enablePricePrediction: intent.enablePricePrediction || !!intent.checkInDate,
     });
     console.log('📅 BookingAgent 结果:', bookingResult.listings.length, '个房源');
 
-    // 4. 生成最终回复
+    // 4. 更新对话上下文
     const topListings = bookingResult.listings
-      .filter(l => l.canBook) // 只显示可预订的
+      .filter(l => l.canBook)
       .slice(0, 5);
 
-    let message = `🎉 我为你找到了 ${topListings.length} 个完美的房源！\n\n`;
+    // 保存搜索结果和过滤条件
+    updateLastSearch(conversationId, bookingResult.listings);
+    updateFilters(conversationId, {
+      checkInDate: intent.checkInDate || context.currentFilters?.checkInDate,
+      checkOutDate: intent.checkOutDate || context.currentFilters?.checkOutDate,
+    });
+
+    // 5. 生成最终回复
+    let message = '';
     
-    if (intent.checkInDate) {
-      message += `📅 入住日期: ${new Date(intent.checkInDate).toLocaleDateString()}`;
-      if (intent.checkOutDate) {
-        message += ` - ${new Date(intent.checkOutDate).toLocaleDateString()}`;
+    if (isFollowUp) {
+      message = `🔄 基于之前的搜索结果，我为你筛选出 ${topListings.length} 个房源：\n\n`;
+    } else {
+      message = `🎉 我为你找到了 ${topListings.length} 个完美的房源！\n\n`;
+    }
+    
+    if (intent.checkInDate || context.currentFilters?.checkInDate) {
+      const checkIn = intent.checkInDate || context.currentFilters?.checkInDate;
+      const checkOut = intent.checkOutDate || context.currentFilters?.checkOutDate;
+      message += `📅 入住日期: ${new Date(checkIn!).toLocaleDateString()}`;
+      if (checkOut) {
+        message += ` - ${new Date(checkOut).toLocaleDateString()}`;
       }
       message += '\n\n';
     }
 
     message += `💡 点击下方房源卡片查看详情和预订\n`;
-    message += `🔍 如果需要调整搜索条件，随时告诉我！`;
+    message += `🔍 可以继续问我："这些房源哪个最便宜" 或 "什么时候预订最划算"`;
+
+    // 保存助手回复到历史
+    addMessage(conversationId, 'assistant', message);
 
     return {
       message,

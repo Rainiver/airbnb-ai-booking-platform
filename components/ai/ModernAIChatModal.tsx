@@ -23,6 +23,9 @@ interface ModernAIChatModalProps {
 }
 
 const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }) => {
+  // 生成唯一对话 ID
+  const [conversationId] = useState(() => `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -92,7 +95,10 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ message: userMessage.content }),
+        body: JSON.stringify({ 
+          message: userMessage.content,
+          conversationId 
+        }),
       });
 
       const data = await response.json();
