@@ -545,12 +545,55 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
     
     let listings: any[] = [];
     
-    // 优先使用上次搜索结果
-    if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
+    // 如果指定了特定房源，只分析那个房源
+    if (intent.listingTitle) {
+      console.log('🎯 分析特定房源价格:', intent.listingTitle);
+      
+      // 先从缓存中查找
+      if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
+        const cleanQuery = intent.listingTitle.toLowerCase().replace(/\s/g, '');
+        const found = context.lastSearchResults.find((l: any) => {
+          const cleanTitle = l.title.toLowerCase().replace(/\s/g, '');
+          return cleanTitle === cleanQuery || cleanTitle.includes(cleanQuery) || cleanQuery.includes(cleanTitle);
+        });
+        
+        if (found) {
+          listings = [found];
+          console.log('✅ 在缓存中找到:', found.title);
+        }
+      }
+      
+      // 如果缓存中没找到，去数据库查找
+      if (listings.length === 0) {
+        const found = await prisma.listing.findFirst({
+          where: {
+            title: {
+              contains: intent.listingTitle,
+              mode: 'insensitive'
+            }
+          },
+          include: { user: true, reservations: true }
+        });
+        
+        if (found) {
+          listings = [found];
+        }
+      }
+      
+      if (listings.length === 0) {
+        return {
+          message: `😕 抱歉，我没有找到名为 "${intent.listingTitle}" 的房源。\n\n💡 请先搜索房源，然后再询问价格。`,
+          listings: []
+        };
+      }
+    } 
+    // 如果没有指定房源，使用上次搜索结果
+    else if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
       console.log('🔄 使用上次搜索的', context.lastSearchResults.length, '个房源进行价格分析');
       listings = context.lastSearchResults.slice(0, 20);
-    } else {
-      // 否则重新搜索
+    } 
+    // 否则重新搜索
+    else {
       const searchResult = await searchAgent(intent.searchQuery || '房源');
       listings = searchResult.listings.slice(0, 20);
     }
@@ -564,30 +607,76 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
 
     const resultListings = bookingResult.listings.slice(0, 5);
     
-    let message = `📊 价格趋势分析：\n\n`;
+    let message = '';
     
-    if (intent.checkInDate) {
-      message += `📅 查询日期: ${new Date(intent.checkInDate).toLocaleDateString()}\n\n`;
-    }
-    
-    // 添加上下文提示
-    if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
-      message += `基于你之前搜索的房源，`;
-    }
-    
-    message += `我为你分析了 ${resultListings.length} 个房源的价格趋势：\n\n`;
-    
-    resultListings.forEach((listing, idx) => {
+    // 如果是针对特定房源
+    if (intent.listingTitle && resultListings.length === 1) {
+      const listing = resultListings[0];
+      message = `🎯 ${listing.title} 的价格分析：\n\n`;
+      
       if (listing.priceInfo) {
-        const trend = listing.priceInfo.priceChange.startsWith('+') ? '📈' : 
-                     listing.priceInfo.priceChange.startsWith('-') ? '📉' : '➡️';
-        message += `${idx + 1}. ${listing.title}\n`;
-        message += `   ${trend} ${listing.priceInfo.priceTrend}\n`;
-        message += `   原价 $${listing.priceInfo.currentPrice} → 预测 $${listing.priceInfo.predictedPrice}/晚\n\n`;
+        const trend = listing.priceInfo.priceChange.startsWith('+') ? '📈 涨价' : 
+                     listing.priceInfo.priceChange.startsWith('-') ? '📉 降价' : '➡️ 稳定';
+        
+        message += `💰 当前基础价格: $${listing.priceInfo.currentPrice}/晚\n\n`;
+        message += `📊 **最佳预订时机建议**：\n\n`;
+        
+        // 根据趋势给出建议
+        if (listing.priceInfo.priceTrend.includes('提前预订')) {
+          message += `✅ **现在预订**：享受提前预订优惠 (-5%)\n`;
+          message += `   预测价格: $${listing.priceInfo.predictedPrice}/晚\n\n`;
+          message += `📅 如果是旺季（6-9月）：价格会上涨 30%\n`;
+          message += `📅 如果是周末：价格会上涨 15%\n`;
+          message += `📅 如果临近入住（7天内）：可能有最后一刻折扣 (-10%)\n\n`;
+          message += `💡 **建议**: 提前预订锁定优惠价！`;
+        } else if (listing.priceInfo.priceTrend.includes('旺季')) {
+          message += `⚠️ **旺季价格**：当前是旺季，价格已上涨 30%\n`;
+          message += `   预测价格: $${listing.priceInfo.predictedPrice}/晚 (+${listing.priceInfo.priceChange})\n\n`;
+          message += `💡 **建议**: 考虑淡季预订可省 30%`;
+        } else if (listing.priceInfo.priceTrend.includes('周末')) {
+          message += `⚠️ **周末加价**：周五/周六价格上涨 15%\n`;
+          message += `   预测价格: $${listing.priceInfo.predictedPrice}/晚\n\n`;
+          message += `💡 **建议**: 选择周日-周四入住可省 15%`;
+        } else if (listing.priceInfo.priceTrend.includes('临近')) {
+          message += `🎉 **最后一刻优惠**：7天内预订有折扣 (-10%)\n`;
+          message += `   优惠价格: $${listing.priceInfo.predictedPrice}/晚\n\n`;
+          message += `💡 **建议**: 如果行程灵活，可以等待临近入住的优惠！`;
+        } else {
+          message += `➡️ 价格相对稳定\n`;
+          message += `   当前价格: $${listing.priceInfo.predictedPrice}/晚\n\n`;
+          message += `💡 **建议**: 价格平稳，任何时候预订都合适`;
+        }
       }
-    });
+      
+      message += `\n\n🎯 **想预订？** 告诉我："帮我预订 ${listing.title}，[入住日期]"`;
+    }
+    // 如果是多个房源
+    else {
+      message = `📊 价格趋势分析：\n\n`;
+      
+      if (intent.checkInDate) {
+        message += `📅 查询日期: ${new Date(intent.checkInDate).toLocaleDateString()}\n\n`;
+      }
+      
+      // 添加上下文提示
+      if (context?.lastSearchResults && context.lastSearchResults.length > 0 && !intent.listingTitle) {
+        message += `基于你之前搜索的房源，`;
+      }
+      
+      message += `我为你分析了 ${resultListings.length} 个房源的价格趋势：\n\n`;
+      
+      resultListings.forEach((listing, idx) => {
+        if (listing.priceInfo) {
+          const trend = listing.priceInfo.priceChange.startsWith('+') ? '📈' : 
+                       listing.priceInfo.priceChange.startsWith('-') ? '📉' : '➡️';
+          message += `${idx + 1}. ${listing.title}\n`;
+          message += `   ${trend} ${listing.priceInfo.priceTrend}\n`;
+          message += `   原价 $${listing.priceInfo.currentPrice} → 预测 $${listing.priceInfo.predictedPrice}/晚\n\n`;
+        }
+      });
 
-    message += `💡 点击房源卡片查看详情`;
+      message += `💡 点击房源卡片查看详情`;
+    }
 
     return {
       message,

@@ -26,16 +26,21 @@ export async function parseUserIntent(message: string): Promise<UserIntent> {
   "checkInDate": "入住日期（YYYY-MM-DD格式，如果提到）",
   "checkOutDate": "退房日期（YYYY-MM-DD格式，如果提到）",
   "listingId": "房源ID（如果提到具体房源）",
-  "listingTitle": "房源名称（如果提到）",
+  "listingTitle": "房源名称（如果提到完整名称，如：Seaside Retreat 31）",
   "enablePricePrediction": true/false（如果询问价格趋势）
 }
 
 意图类型说明：
 - search: 寻找房源（如："找海边的房子"）
 - date_check: 检查日期可用性（如："1月1日到7日是否可用"）
-- price_predict: 价格预测（如："这个日期价格会涨吗"）
-- booking: 预订房源（如："帮我预订这个房源"）
+- price_predict: 价格预测（如："这个日期价格会涨吗"，"什么时候预订最便宜"）
+- booking: 预订房源（如："帮我预订这个房源"，"我要订 XXX"）
 - general: 一般性问题（如："你好"）
+
+重要规则：
+1. 如果同时提到房源名称和价格问题，type 应该是 "price_predict"，并且要填写 listingTitle
+2. 如果同时提到房源名称和预订，type 应该是 "booking"
+3. listingTitle 必须是完整准确的房源名称，包括数字（如 "Seaside Retreat 31" 不是 "Seaside Retreat"）
 
 日期解析规则：
 - "1月1日" → 今年或明年的1月1日（选择未来的日期）
