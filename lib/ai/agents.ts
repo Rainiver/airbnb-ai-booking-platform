@@ -380,11 +380,11 @@ export async function orchestrateAgents(
 
     // 根据意图类型采取不同策略
     if (intent.type === 'date_check') {
-      return await handleDateCheck(intent);
+      return await handleDateCheck(intent, conversationId);
     } else if (intent.type === 'price_predict') {
-      return await handlePricePredict(intent);
+      return await handlePricePredict(intent, conversationId);
     } else if (intent.type === 'booking') {
-      return await handleBooking(intent);
+      return await handleBooking(intent, conversationId);
     }
 
     // 默认：搜索流程（基于上下文）
@@ -499,7 +499,7 @@ export async function orchestrateAgents(
 }
 
 // 处理日期检查
-async function handleDateCheck(intent: any): Promise<OrchestrationResult> {
+async function handleDateCheck(intent: any, conversationId: string): Promise<OrchestrationResult> {
   try {
     // 获取所有房源
     const allListings = await prisma.listing.findMany({
@@ -538,29 +538,46 @@ async function handleDateCheck(intent: any): Promise<OrchestrationResult> {
 }
 
 // 处理价格预测
-async function handlePricePredict(intent: any): Promise<OrchestrationResult> {
+async function handlePricePredict(intent: any, conversationId: string): Promise<OrchestrationResult> {
   try {
-    // 搜索相关房源
-    const searchResult = await searchAgent(intent.searchQuery || '房源');
+    // 获取上下文
+    const context = getConversation(conversationId);
+    
+    let listings: any[] = [];
+    
+    // 优先使用上次搜索结果
+    if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
+      console.log('🔄 使用上次搜索的', context.lastSearchResults.length, '个房源进行价格分析');
+      listings = context.lastSearchResults.slice(0, 20);
+    } else {
+      // 否则重新搜索
+      const searchResult = await searchAgent(intent.searchQuery || '房源');
+      listings = searchResult.listings.slice(0, 20);
+    }
     
     // 应用价格预测
-    const bookingResult = await bookingAgent(searchResult.listings.slice(0, 20), {
+    const bookingResult = await bookingAgent(listings, {
       checkInDate: intent.checkInDate,
       checkOutDate: intent.checkOutDate,
       enablePricePrediction: true,
     });
 
-    const listings = bookingResult.listings.slice(0, 5);
+    const resultListings = bookingResult.listings.slice(0, 5);
     
     let message = `📊 价格趋势分析：\n\n`;
     
     if (intent.checkInDate) {
       message += `📅 查询日期: ${new Date(intent.checkInDate).toLocaleDateString()}\n\n`;
     }
-
-    message += `我为你分析了 ${listings.length} 个房源的价格趋势：\n\n`;
     
-    listings.forEach((listing, idx) => {
+    // 添加上下文提示
+    if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
+      message += `基于你之前搜索的房源，`;
+    }
+    
+    message += `我为你分析了 ${resultListings.length} 个房源的价格趋势：\n\n`;
+    
+    resultListings.forEach((listing, idx) => {
       if (listing.priceInfo) {
         const trend = listing.priceInfo.priceChange.startsWith('+') ? '📈' : 
                      listing.priceInfo.priceChange.startsWith('-') ? '📉' : '➡️';
@@ -574,7 +591,7 @@ async function handlePricePredict(intent: any): Promise<OrchestrationResult> {
 
     return {
       message,
-      listings
+      listings: resultListings
     };
   } catch (error) {
     console.error('Price predict error:', error);
@@ -586,8 +603,9 @@ async function handlePricePredict(intent: any): Promise<OrchestrationResult> {
 }
 
 // 处理预订请求
-async function handleBooking(intent: any): Promise<OrchestrationResult> {
+async function handleBooking(intent: any, conversationId: string): Promise<OrchestrationResult> {
   try {
+    const context = getConversation(conversationId);
     let message = `🎫 预订功能提示：\n\n`;
     
     if (!intent.listingTitle && !intent.listingId) {
@@ -603,31 +621,81 @@ async function handleBooking(intent: any): Promise<OrchestrationResult> {
 
     // 查找指定房源
     let listing = null;
-    if (intent.listingId) {
-      listing = await prisma.listing.findUnique({
-        where: { id: intent.listingId },
-        include: { user: true, reservations: true }
+    
+    // 1. 优先从上次搜索结果中查找（更准确，更快）
+    if (intent.listingTitle && context?.lastSearchResults && context.lastSearchResults.length > 0) {
+      console.log('🔍 在上次搜索结果中查找:', intent.listingTitle);
+      
+      // 移除空格进行匹配
+      const cleanQuery = intent.listingTitle.toLowerCase().replace(/\s/g, '');
+      
+      listing = context.lastSearchResults.find((l: any) => {
+        const cleanTitle = l.title.toLowerCase().replace(/\s/g, '');
+        return cleanTitle === cleanQuery || cleanTitle.includes(cleanQuery) || cleanQuery.includes(cleanTitle);
       });
-    } else if (intent.listingTitle) {
-      listing = await prisma.listing.findFirst({
-        where: {
-          title: {
-            contains: intent.listingTitle,
-            mode: 'insensitive'
-          }
-        },
-        include: { user: true, reservations: true }
-      });
+      
+      if (listing) {
+        console.log('✅ 在缓存中找到房源:', listing.title);
+      }
+    }
+    
+    // 2. 如果缓存中没找到，去数据库查找
+    if (!listing) {
+      if (intent.listingId) {
+        listing = await prisma.listing.findUnique({
+          where: { id: intent.listingId },
+          include: { user: true, reservations: true }
+        });
+      } else if (intent.listingTitle) {
+        // 先尝试精确匹配
+        listing = await prisma.listing.findFirst({
+          where: {
+            title: {
+              contains: intent.listingTitle,
+              mode: 'insensitive'
+            }
+          },
+          include: { user: true, reservations: true }
+        });
+        
+        // 如果没找到，尝试模糊匹配
+        if (!listing) {
+          const cleanQuery = intent.listingTitle.toLowerCase().replace(/\s/g, '');
+          const allListings = await prisma.listing.findMany({
+            include: { user: true, reservations: true }
+          });
+          
+          listing = allListings.find(l => {
+            const cleanTitle = l.title.toLowerCase().replace(/\s/g, '');
+            return cleanTitle.includes(cleanQuery) || cleanQuery.includes(cleanTitle);
+          }) || null;
+        }
+      }
     }
 
     if (!listing) {
       message = `😕 抱歉，我没有找到名为 "${intent.listingTitle}" 的房源。\n\n`;
-      message += `💡 请先搜索房源，然后告诉我你想预订哪一个。`;
       
-      return {
-        message,
-        listings: []
-      };
+      // 如果有上次搜索结果，显示可用选项
+      if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
+        message += `📋 你之前搜索的房源有：\n\n`;
+        context.lastSearchResults.slice(0, 5).forEach((l: any, idx: number) => {
+          message += `${idx + 1}. ${l.title}\n`;
+        });
+        message += `\n💡 请告诉我："帮我预订 [房源名称]"`;
+        
+        return {
+          message,
+          listings: context.lastSearchResults.slice(0, 5)
+        };
+      } else {
+        message += `💡 请先搜索房源，然后告诉我你想预订哪一个。`;
+        
+        return {
+          message,
+          listings: []
+        };
+      }
     }
 
     // 检查日期和可用性
