@@ -1,14 +1,20 @@
-# GitHub项目描述设置
+# GitHub Project Description Setup
 
-## 📝 项目Description（简短描述）
+## 📝 Project Description (Short Version)
 
+**Recommended (English)**:
 ```
-基于RAG+Multi-Agent AI的智能旅行预订平台 | 自然语言搜索·动态定价·上下文对话 | Next.js 13 + Google Gemini Pro + Supabase Vector
+AI-powered travel booking platform with RAG + Multi-Agent system | Natural language search, dynamic pricing & contextual chat | Next.js 13 + Gemini Pro + Supabase Vector
 ```
 
-或者更简洁版本：
+**Alternative (Shorter)**:
 ```
-AI智能旅行预订系统 - RAG检索增强 + Multi-Agent协作 + 动态定价引擎
+Intelligent travel booking system with RAG retrieval, Multi-Agent collaboration & dynamic pricing engine
+```
+
+**Very Short**:
+```
+Full-stack AI booking platform with RAG + Multi-Agent architecture, semantic search & smart pricing
 ```
 
 ## 🏷️ Topics（GitHub标签）
