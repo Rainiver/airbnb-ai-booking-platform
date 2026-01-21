@@ -15,6 +15,25 @@ const CATEGORIES = [
     "Skiing", "Castles", "Caves", "Camping", "Arctic", "Desert", "Barns", "Lux"
 ];
 
+// Map categories to LoremFlickr keywords for realistic photos
+const CATEGORY_KEYWORDS: Record<string, string> = {
+    "Beach": "beach,house,resort",
+    "Windmills": "windmill,field,nature",
+    "Modern": "modern,architecture,luxury,villa",
+    "Countryside": "cottage,farmhouse,meadow",
+    "Pools": "swimmingpool,luxury,resort",
+    "Islands": "tropical,island,beach",
+    "Lake": "lakehouse,water,cabin",
+    "Skiing": "chalet,snow,winter,mountain",
+    "Castles": "castle,architecture,historic",
+    "Caves": "cave,rock,nature", // Might be tricky, but gives texture
+    "Camping": "tent,camping,glamping,forest",
+    "Arctic": "snow,ice,cabin,winter",
+    "Desert": "desert,adobe,house",
+    "Barns": "barn,farm,rustic",
+    "Lux": "luxury,mansion,interior"
+};
+
 const COUNTRY_CODES = [
     'US', 'GB', 'FR', 'DE', 'ES', 'IT', 'JP', 'CN', 'AU', 'BR',
     'CA', 'CH', 'DK', 'GR', 'IE', 'IN', 'MX', 'NL', 'NO', 'NZ',
@@ -22,11 +41,9 @@ const COUNTRY_CODES = [
 ];
 
 // Configuration
-const TARGET_COUNT = 50;
-const BATCH_SIZE = 5;
-const POLLINATIONS_TIMEOUT_MS = 30000; // 30s
-const DELAY_BETWEEN_IMAGES_MS = 2000; // 2s - faster since we have fallback
-const ERROR_IMAGE_SIZE_THRESHOLD = 1000000; // 1MB 
+const TARGET_COUNT = 100;
+const BATCH_SIZE = 10;
+const DELAY_BETWEEN_IMAGES_MS = 1500; // 1.5s delay to be nice
 const IMAGE_DIR = path.join(process.cwd(), 'public', 'images', 'synthetic');
 
 // Ensure image directory exists
@@ -43,52 +60,25 @@ interface GeneratedListing {
     guestCount: number;
     locationValue: string;
     price: number;
-    imagePromptSummary: string;
 }
 
 // Helper to sleep
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function downloadImage(url: string): Promise<Buffer> {
-    const response = await axios({
-        url,
-        method: 'GET',
-        responseType: 'arraybuffer',
-        timeout: POLLINATIONS_TIMEOUT_MS,
-        headers: { 'User-Agent': 'Mozilla/5.0' }
-    });
-    return response.data;
-}
-
-// Retry with simple fallback logic
-// 1. Try Pollinations
-// 2. If fail/timeout/rate-limit-image -> Use Picsum
-async function getImage(prompt: string, seed: number): Promise<Buffer | null> {
-    const encodedSummary = encodeURIComponent(prompt);
-    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedSummary}?width=600&height=400&nologo=true&seed=${seed}`;
-
+async function downloadImage(url: string, filepath: string): Promise<boolean> {
     try {
-        const buffer = await downloadImage(pollinationsUrl);
-
-        // Check for Rate Limit Image (Size ~1.4MB)
-        if (buffer.length > ERROR_IMAGE_SIZE_THRESHOLD) {
-            console.log(`      ⚠️ Rate Limit hit on Pollinations.`);
-            throw new Error("Rate Limit Image");
-        }
-        return buffer;
-
+        const response = await axios({
+            url,
+            method: 'GET',
+            responseType: 'arraybuffer',
+            timeout: 15000,
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+        fs.writeFileSync(filepath, response.data);
+        return true;
     } catch (error) {
-        // FALLBACK
-        console.log(`      ⚠️ Pollinations failed/slow. Using Picsum fallback.`);
-        try {
-            // Picsum random image with seed for consistency
-            const picsumUrl = `https://picsum.photos/seed/${seed}/600/400`;
-            const buffer = await downloadImage(picsumUrl);
-            return buffer;
-        } catch (fallbackError) {
-            console.error(`      ❌ Picsum fallback failed too.`);
-            return null;
-        }
+        console.error(`      ❌ Failed download: ${error.message}`);
+        return false;
     }
 }
 
@@ -108,11 +98,6 @@ async function generateListingsBatch(batchSize: number, batchIndex: number) {
     - guestCount: number (1-12)
     - locationValue: string (Pick a random 2-letter Country Code from this list: ${COUNTRY_CODES.join(", ")})
     - price: number (50-1500)
-    - imagePromptSummary: string (A concise, comma-separated string of visual keywords describing the listing for an image generator, e.g., "modern villa, infinity pool, sunset, bali". URL friendly.)
-
-    Theme direction for this batch (Batch ${batchIndex}): 
-    Focus on ${CATEGORIES[batchIndex % CATEGORIES.length]} and mixed creative themes.
-    Ensure "imagePromptSummary" is descriptive but compact.
   `;
 
     try {
@@ -128,7 +113,7 @@ async function generateListingsBatch(batchSize: number, batchIndex: number) {
 }
 
 async function main() {
-    console.log('🚀 Starting synthetic listing generation (Pollinations + Picsum Fallback)...');
+    console.log('🚀 Starting synthetic listing generation (LoremFlickr Real Photos)...');
 
     if (!process.env.GEMINI_API_KEY) {
         console.error('❌ GEMINI_API_KEY not found in .env.local');
@@ -164,17 +149,20 @@ async function main() {
             const item = generatedData[idx];
             const category = CATEGORIES.includes(item.category) ? item.category : CATEGORIES[0];
 
-            const seed = Math.floor(Math.random() * 1000000);
-            const filename = `synthetic-${Date.now()}-${i}-${idx}.jpg`;
+            const keywords = CATEGORY_KEYWORDS[category] || "house,architecture";
+            // Add a random param to ensure variety even with same keywords
+            const randomSeed = Math.floor(Math.random() * 10000);
+            const imageUrl = `https://loremflickr.com/800/600/${keywords}?lock=${randomSeed}`;
+
+            const filename = `flickr-${Date.now()}-${i}-${idx}.jpg`;
             const localPath = path.join(IMAGE_DIR, filename);
             const publicPath = `/images/synthetic/${filename}`;
 
-            process.stdout.write(`   ⬇️ Downloading (${idx + 1}/${generatedData.length}): "${item.title.substring(0, 20)}..." `);
+            process.stdout.write(`   ⬇️  Downloading image for "${item.title.substring(0, 15)}..." [${category}] `);
 
-            const imageBuffer = await getImage(item.imagePromptSummary, seed);
+            const success = await downloadImage(imageUrl, localPath);
 
-            if (imageBuffer) {
-                fs.writeFileSync(localPath, imageBuffer);
+            if (success) {
                 console.log('✅ OK');
                 validListings.push({
                     title: item.title,
@@ -190,7 +178,28 @@ async function main() {
                     createdAt: new Date(),
                 });
             } else {
-                console.log('❌ Skipped (Image Download Failed)');
+                console.log('❌ Failed');
+                // fall back to a generic simple placeholder if download fails? 
+                // Or just picsum.
+                // Try picsum as absolute backup
+                const picsumUrl = `https://picsum.photos/seed/${randomSeed}/800/600`;
+                const success2 = await downloadImage(picsumUrl, localPath);
+                if (success2) {
+                    console.log('      Using Picsum backup ✅');
+                    validListings.push({
+                        title: item.title,
+                        description: item.description,
+                        imageSrc: publicPath,
+                        category: category,
+                        roomCount: item.roomCount,
+                        bathroomCount: item.bathroomCount,
+                        guestCount: item.guestCount,
+                        locationValue: item.locationValue,
+                        userId: user!.id,
+                        price: item.price,
+                        createdAt: new Date(),
+                    });
+                }
             }
 
             if (idx < generatedData.length - 1) {
@@ -200,22 +209,16 @@ async function main() {
 
         if (validListings.length > 0) {
             try {
-                await prisma.listings.createMany({ data: validListings }); // wait, prisma model is Listing or listings? User schema said Listing.
-                // check schema.prisma: model Listing
-                // Prisma Client usage: prisma.listing.createMany
-                // Fixing typo below
-            } catch (e) {
                 await prisma.listing.createMany({ data: validListings });
+                totalCreated += validListings.length;
+                console.log(`📝 Batch saved. Total listings: ${totalCreated}`);
+            } catch (dbError) {
+                console.error(`❌ DB Insert Error:`, dbError);
             }
-
-            totalCreated += validListings.length;
-            console.log(`📝 Batch saved. Total listings: ${totalCreated}`);
         }
-
-        await sleep(2000);
     }
 
-    console.log(`\n🎉 Done! Created ${totalCreated} listings.`);
+    console.log(`\n🎉 Done! Created ${totalCreated} listings using authentic Flickr images.`);
 }
 
 main()
