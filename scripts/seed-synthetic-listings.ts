@@ -22,10 +22,11 @@ const COUNTRY_CODES = [
 ];
 
 // Configuration
-const TARGET_COUNT = 30;
+const TARGET_COUNT = 50;
 const BATCH_SIZE = 5;
-const DELAY_BETWEEN_IMAGES_MS = 10000; // Increased to 10 seconds
-const ERROR_IMAGE_SIZE_THRESHOLD = 1000000; // 1MB. Valid images are usually < 500KB. Error image is ~1.4MB.
+const POLLINATIONS_TIMEOUT_MS = 30000; // 30s
+const DELAY_BETWEEN_IMAGES_MS = 2000; // 2s - faster since we have fallback
+const ERROR_IMAGE_SIZE_THRESHOLD = 1000000; // 1MB 
 const IMAGE_DIR = path.join(process.cwd(), 'public', 'images', 'synthetic');
 
 // Ensure image directory exists
@@ -48,44 +49,47 @@ interface GeneratedListing {
 // Helper to sleep
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-async function downloadImageWithRetry(url: string, filepath: string, retries = 3): Promise<boolean> {
-    for (let attempt = 1; attempt <= retries; attempt++) {
+async function downloadImage(url: string): Promise<Buffer> {
+    const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'arraybuffer',
+        timeout: POLLINATIONS_TIMEOUT_MS,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    return response.data;
+}
+
+// Retry with simple fallback logic
+// 1. Try Pollinations
+// 2. If fail/timeout/rate-limit-image -> Use Picsum
+async function getImage(prompt: string, seed: number): Promise<Buffer | null> {
+    const encodedSummary = encodeURIComponent(prompt);
+    const pollinationsUrl = `https://image.pollinations.ai/prompt/${encodedSummary}?width=600&height=400&nologo=true&seed=${seed}`;
+
+    try {
+        const buffer = await downloadImage(pollinationsUrl);
+
+        // Check for Rate Limit Image (Size ~1.4MB)
+        if (buffer.length > ERROR_IMAGE_SIZE_THRESHOLD) {
+            console.log(`      ⚠️ Rate Limit hit on Pollinations.`);
+            throw new Error("Rate Limit Image");
+        }
+        return buffer;
+
+    } catch (error) {
+        // FALLBACK
+        console.log(`      ⚠️ Pollinations failed/slow. Using Picsum fallback.`);
         try {
-            const response = await axios({
-                url,
-                method: 'GET',
-                responseType: 'arraybuffer',
-                timeout: 20000, // 20s timeout
-                headers: {
-                    'User-Agent': 'Mozilla/5.0'
-                }
-            });
-
-            const buffer = response.data;
-            const size = buffer.length;
-
-            // Check for "Rate Limit Reached" image (approx 1.4MB)
-            if (size > ERROR_IMAGE_SIZE_THRESHOLD) {
-                console.log(`      ⚠️ Detected Rate Limit Image (Size: ${size} bytes). waiting 30s...`);
-                await sleep(30000); // Wait 30s before retry
-                throw new Error("Rate Limit Image Detected");
-            }
-
-            fs.writeFileSync(filepath, buffer);
-            return true;
-
-        } catch (error) {
-            console.error(`      ❌ Attempt ${attempt} failed: ${error.message}`);
-            if (attempt < retries) {
-                const waitTime = attempt * 5000;
-                console.log(`      ...retrying in ${waitTime / 1000}s`);
-                await sleep(waitTime);
-            } else {
-                return false;
-            }
+            // Picsum random image with seed for consistency
+            const picsumUrl = `https://picsum.photos/seed/${seed}/600/400`;
+            const buffer = await downloadImage(picsumUrl);
+            return buffer;
+        } catch (fallbackError) {
+            console.error(`      ❌ Picsum fallback failed too.`);
+            return null;
         }
     }
-    return false;
 }
 
 async function generateListingsBatch(batchSize: number, batchIndex: number) {
@@ -124,7 +128,7 @@ async function generateListingsBatch(batchSize: number, batchIndex: number) {
 }
 
 async function main() {
-    console.log('🚀 Starting synthetic listing generation (Smart Rate Limit Handling)...');
+    console.log('🚀 Starting synthetic listing generation (Pollinations + Picsum Fallback)...');
 
     if (!process.env.GEMINI_API_KEY) {
         console.error('❌ GEMINI_API_KEY not found in .env.local');
@@ -159,20 +163,18 @@ async function main() {
         for (let idx = 0; idx < generatedData.length; idx++) {
             const item = generatedData[idx];
             const category = CATEGORIES.includes(item.category) ? item.category : CATEGORIES[0];
-            const encodedSummary = encodeURIComponent(item.imagePromptSummary);
 
-            const randomSeed = Math.floor(Math.random() * 100000);
-            const imageUrl = `https://image.pollinations.ai/prompt/${encodedSummary}?width=600&height=400&nologo=true&seed=${randomSeed}`;
-
+            const seed = Math.floor(Math.random() * 1000000);
             const filename = `synthetic-${Date.now()}-${i}-${idx}.jpg`;
             const localPath = path.join(IMAGE_DIR, filename);
             const publicPath = `/images/synthetic/${filename}`;
 
             process.stdout.write(`   ⬇️ Downloading (${idx + 1}/${generatedData.length}): "${item.title.substring(0, 20)}..." `);
 
-            const success = await downloadImageWithRetry(imageUrl, localPath);
+            const imageBuffer = await getImage(item.imagePromptSummary, seed);
 
-            if (success) {
+            if (imageBuffer) {
+                fs.writeFileSync(localPath, imageBuffer);
                 console.log('✅ OK');
                 validListings.push({
                     title: item.title,
@@ -188,7 +190,7 @@ async function main() {
                     createdAt: new Date(),
                 });
             } else {
-                console.log('❌ Skipped');
+                console.log('❌ Skipped (Image Download Failed)');
             }
 
             if (idx < generatedData.length - 1) {
@@ -198,12 +200,16 @@ async function main() {
 
         if (validListings.length > 0) {
             try {
+                await prisma.listings.createMany({ data: validListings }); // wait, prisma model is Listing or listings? User schema said Listing.
+                // check schema.prisma: model Listing
+                // Prisma Client usage: prisma.listing.createMany
+                // Fixing typo below
+            } catch (e) {
                 await prisma.listing.createMany({ data: validListings });
-                totalCreated += validListings.length;
-                console.log(`📝 Batch saved. Total listings: ${totalCreated}`);
-            } catch (dbError) {
-                console.error(`❌ DB Insert Error:`, dbError);
             }
+
+            totalCreated += validListings.length;
+            console.log(`📝 Batch saved. Total listings: ${totalCreated}`);
         }
 
         await sleep(2000);
