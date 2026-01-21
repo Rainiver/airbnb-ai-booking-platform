@@ -42,6 +42,7 @@
     "react-select": "^5.7.2",
     "react-toastify": "^9.1.2",
     "react-world-flags": "^1.5.1",
+    "sharp": "^0.34.5",
     "tailwind-scrollbar": "^3.0.0",
     "typescript": "5.0.3",
     "uuid": "^13.0.0",
