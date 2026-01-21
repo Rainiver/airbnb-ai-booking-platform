@@ -3,6 +3,9 @@ require('dotenv').config({ path: '.env.local' });
 
 import { PrismaClient } from '@prisma/client';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import fs from 'fs';
+import path from 'path';
+import axios from 'axios';
 
 const prisma = new PrismaClient();
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
@@ -12,12 +15,21 @@ const CATEGORIES = [
     "Skiing", "Castles", "Caves", "Camping", "Arctic", "Desert", "Barns", "Lux"
 ];
 
-// Valid/common cca2 codes for locationValue
 const COUNTRY_CODES = [
     'US', 'GB', 'FR', 'DE', 'ES', 'IT', 'JP', 'CN', 'AU', 'BR',
     'CA', 'CH', 'DK', 'GR', 'IE', 'IN', 'MX', 'NL', 'NO', 'NZ',
     'PT', 'SE', 'SG', 'TH', 'TR', 'ZA', 'ID', 'IS', 'FI'
 ];
+
+// Configuration
+const TARGET_COUNT = 50; // Reduced for demo speed - change to 500 for full run
+const BATCH_SIZE = 10;
+const IMAGE_DIR = path.join(process.cwd(), 'public', 'images', 'synthetic');
+
+// Ensure image directory exists
+if (!fs.existsSync(IMAGE_DIR)) {
+    fs.mkdirSync(IMAGE_DIR, { recursive: true });
+}
 
 interface GeneratedListing {
     title: string;
@@ -31,7 +43,22 @@ interface GeneratedListing {
     imagePromptSummary: string;
 }
 
-// Helper to chunk the generation to avoid hitting output token limits or timeouts
+async function downloadImage(url: string, filepath: string): Promise<boolean> {
+    try {
+        const response = await axios({
+            url,
+            method: 'GET',
+            responseType: 'arraybuffer',
+            timeout: 10000 // 10s timeout
+        });
+        fs.writeFileSync(filepath, response.data);
+        return true;
+    } catch (error) {
+        console.error(`Failed to download image from ${url}:`, error.message);
+        return false;
+    }
+}
+
 async function generateListingsBatch(batchSize: number, batchIndex: number) {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
@@ -58,10 +85,7 @@ async function generateListingsBatch(batchSize: number, batchIndex: number) {
     try {
         const result = await model.generateContent(prompt);
         const text = result.response.text();
-
-        // Clean up potential markdown code blocks if gemini adds them despite instructions
         const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
         const listings: GeneratedListing[] = JSON.parse(cleanedText);
         return listings;
     } catch (error) {
@@ -71,14 +95,13 @@ async function generateListingsBatch(batchSize: number, batchIndex: number) {
 }
 
 async function main() {
-    console.log('🚀 Starting synthetic listing generation...');
+    console.log('🚀 Starting synthetic listing generation (static images)...');
 
     if (!process.env.GEMINI_API_KEY) {
         console.error('❌ GEMINI_API_KEY not found in .env.local');
         process.exit(1);
     }
 
-    // 1. Get or create a dummy user
     let user = await prisma.user.findFirst();
     if (!user) {
         console.log('User not found, creating a dummy user...');
@@ -86,16 +109,13 @@ async function main() {
             data: {
                 name: 'Host User',
                 email: 'host@example.com',
-                hashedPassword: 'dummy_password', // In a real scenario, this should be valid
+                hashedPassword: 'dummy_password',
             }
         });
     }
     console.log(`👤 Using User ID: ${user.id}`);
 
-    const TARGET_COUNT = 500;
-    const BATCH_SIZE = 20; // Generate 20 at a time to be safe with limits
     const TOTAL_BATCHES = Math.ceil(TARGET_COUNT / BATCH_SIZE);
-
     let totalCreated = 0;
 
     for (let i = 0; i < TOTAL_BATCHES; i++) {
@@ -108,45 +128,62 @@ async function main() {
             continue;
         }
 
-        // Transform and prepare for Prisma
-        const listingsToCreate = generatedData.map(item => {
-            // Ensure category is valid, fallback if needed
+        const listingsToCreate = [];
+
+        // Process images in parallel for the batch
+        const imagePromises = generatedData.map(async (item, idx) => {
             const category = CATEGORIES.includes(item.category) ? item.category : CATEGORIES[0];
-
-            // Construct Pollinations URL
             const encodedSummary = encodeURIComponent(item.imagePromptSummary);
-            const imageSrc = `https://image.pollinations.ai/prompt/${encodedSummary}?width=800&height=600&nologo=true`;
 
-            return {
-                title: item.title,
-                description: item.description,
-                imageSrc: imageSrc,
-                category: category,
-                roomCount: item.roomCount,
-                bathroomCount: item.bathroomCount,
-                guestCount: item.guestCount,
-                locationValue: item.locationValue,
-                userId: user!.id,
-                price: item.price,
-                createdAt: new Date(), // Explicitly set if needed, though default exists
-            };
+            // Dynamic URL for downloading
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedSummary}?width=600&height=400&nologo=true`;
+
+            // Local filename
+            const filename = `synthetic-${Date.now()}-${i}-${idx}.jpg`;
+            const localPath = path.join(IMAGE_DIR, filename);
+            const publicPath = `/images/synthetic/${filename}`;
+
+            // Download image
+            const success = await downloadImage(imageUrl, localPath);
+
+            if (success) {
+                return {
+                    title: item.title,
+                    description: item.description,
+                    imageSrc: publicPath, // Use local path
+                    category: category,
+                    roomCount: item.roomCount,
+                    bathroomCount: item.bathroomCount,
+                    guestCount: item.guestCount,
+                    locationValue: item.locationValue,
+                    userId: user!.id,
+                    price: item.price,
+                    createdAt: new Date(),
+                };
+            } else {
+                return null;
+            }
         });
 
-        try {
-            await prisma.listing.createMany({
-                data: listingsToCreate
-            });
-            totalCreated += listingsToCreate.length;
-            console.log(`✅ Batch ${i + 1} inserted. Total so far: ${totalCreated}`);
-        } catch (dbError) {
-            console.error(`❌ DB Insert Error in batch ${i + 1}:`, dbError);
+        const results = await Promise.all(imagePromises);
+        const validListings = results.filter((l): l is NonNullable<typeof l> => l !== null);
+
+        if (validListings.length > 0) {
+            try {
+                await prisma.listing.createMany({
+                    data: validListings
+                });
+                totalCreated += validListings.length;
+                console.log(`✅ Batch ${i + 1} inserted (${validListings.length} items). Total: ${totalCreated}`);
+            } catch (dbError) {
+                console.error(`❌ DB Insert Error in batch ${i + 1}:`, dbError);
+            }
         }
 
-        // Tiny delay to be nice to APIs
         await new Promise(r => setTimeout(r, 1000));
     }
 
-    console.log(`\n🎉 Done! Created ${totalCreated} listings.`);
+    console.log(`\n🎉 Done! Created ${totalCreated} listings with static images.`);
 }
 
 main()
