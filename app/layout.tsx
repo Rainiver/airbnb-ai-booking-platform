@@ -8,7 +8,6 @@ import RentModal from "@/components/models/RentModal";
 import SearchModal from "@/components/models/SearchModal";
 import Navbar from "@/components/navbar/Navbar";
 import AIChatButton from "@/components/ai/AIChatButton";
-import { Nunito } from "next/font/google";
 import "../styles/globals.css";
 import getCurrentUser from "./actions/getCurrentUser";
 
@@ -18,9 +17,7 @@ export const metadata = {
   icons: "https://www.seekpng.com/png/full/957-9571167_airbnb-png.png",
 };
 
-const font = Nunito({
-  subsets: ["latin"],
-});
+const font = { className: "font-nunito" };
 
 export default async function RootLayout({
   children,
