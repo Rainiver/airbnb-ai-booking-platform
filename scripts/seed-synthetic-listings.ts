@@ -22,8 +22,10 @@ const COUNTRY_CODES = [
 ];
 
 // Configuration
-const TARGET_COUNT = 50; // Reduced for demo speed - change to 500 for full run
-const BATCH_SIZE = 10;
+const TARGET_COUNT = 30;
+const BATCH_SIZE = 5;
+const DELAY_BETWEEN_IMAGES_MS = 10000; // Increased to 10 seconds
+const ERROR_IMAGE_SIZE_THRESHOLD = 1000000; // 1MB. Valid images are usually < 500KB. Error image is ~1.4MB.
 const IMAGE_DIR = path.join(process.cwd(), 'public', 'images', 'synthetic');
 
 // Ensure image directory exists
@@ -43,20 +45,47 @@ interface GeneratedListing {
     imagePromptSummary: string;
 }
 
-async function downloadImage(url: string, filepath: string): Promise<boolean> {
-    try {
-        const response = await axios({
-            url,
-            method: 'GET',
-            responseType: 'arraybuffer',
-            timeout: 10000 // 10s timeout
-        });
-        fs.writeFileSync(filepath, response.data);
-        return true;
-    } catch (error) {
-        console.error(`Failed to download image from ${url}:`, error.message);
-        return false;
+// Helper to sleep
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function downloadImageWithRetry(url: string, filepath: string, retries = 3): Promise<boolean> {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const response = await axios({
+                url,
+                method: 'GET',
+                responseType: 'arraybuffer',
+                timeout: 20000, // 20s timeout
+                headers: {
+                    'User-Agent': 'Mozilla/5.0'
+                }
+            });
+
+            const buffer = response.data;
+            const size = buffer.length;
+
+            // Check for "Rate Limit Reached" image (approx 1.4MB)
+            if (size > ERROR_IMAGE_SIZE_THRESHOLD) {
+                console.log(`      ⚠️ Detected Rate Limit Image (Size: ${size} bytes). waiting 30s...`);
+                await sleep(30000); // Wait 30s before retry
+                throw new Error("Rate Limit Image Detected");
+            }
+
+            fs.writeFileSync(filepath, buffer);
+            return true;
+
+        } catch (error) {
+            console.error(`      ❌ Attempt ${attempt} failed: ${error.message}`);
+            if (attempt < retries) {
+                const waitTime = attempt * 5000;
+                console.log(`      ...retrying in ${waitTime / 1000}s`);
+                await sleep(waitTime);
+            } else {
+                return false;
+            }
+        }
     }
+    return false;
 }
 
 async function generateListingsBatch(batchSize: number, batchIndex: number) {
@@ -95,7 +124,7 @@ async function generateListingsBatch(batchSize: number, batchIndex: number) {
 }
 
 async function main() {
-    console.log('🚀 Starting synthetic listing generation (static images)...');
+    console.log('🚀 Starting synthetic listing generation (Smart Rate Limit Handling)...');
 
     if (!process.env.GEMINI_API_KEY) {
         console.error('❌ GEMINI_API_KEY not found in .env.local');
@@ -123,34 +152,32 @@ async function main() {
 
         const generatedData = await generateListingsBatch(BATCH_SIZE, i);
 
-        if (generatedData.length === 0) {
-            console.log('⚠️ Skipping empty batch due to generation error.');
-            continue;
-        }
+        if (generatedData.length === 0) continue;
 
-        const listingsToCreate = [];
+        const validListings = [];
 
-        // Process images in parallel for the batch
-        const imagePromises = generatedData.map(async (item, idx) => {
+        for (let idx = 0; idx < generatedData.length; idx++) {
+            const item = generatedData[idx];
             const category = CATEGORIES.includes(item.category) ? item.category : CATEGORIES[0];
             const encodedSummary = encodeURIComponent(item.imagePromptSummary);
 
-            // Dynamic URL for downloading
-            const imageUrl = `https://image.pollinations.ai/prompt/${encodedSummary}?width=600&height=400&nologo=true`;
+            const randomSeed = Math.floor(Math.random() * 100000);
+            const imageUrl = `https://image.pollinations.ai/prompt/${encodedSummary}?width=600&height=400&nologo=true&seed=${randomSeed}`;
 
-            // Local filename
             const filename = `synthetic-${Date.now()}-${i}-${idx}.jpg`;
             const localPath = path.join(IMAGE_DIR, filename);
             const publicPath = `/images/synthetic/${filename}`;
 
-            // Download image
-            const success = await downloadImage(imageUrl, localPath);
+            process.stdout.write(`   ⬇️ Downloading (${idx + 1}/${generatedData.length}): "${item.title.substring(0, 20)}..." `);
+
+            const success = await downloadImageWithRetry(imageUrl, localPath);
 
             if (success) {
-                return {
+                console.log('✅ OK');
+                validListings.push({
                     title: item.title,
                     description: item.description,
-                    imageSrc: publicPath, // Use local path
+                    imageSrc: publicPath,
                     category: category,
                     roomCount: item.roomCount,
                     bathroomCount: item.bathroomCount,
@@ -159,31 +186,30 @@ async function main() {
                     userId: user!.id,
                     price: item.price,
                     createdAt: new Date(),
-                };
-            } else {
-                return null;
-            }
-        });
-
-        const results = await Promise.all(imagePromises);
-        const validListings = results.filter((l): l is NonNullable<typeof l> => l !== null);
-
-        if (validListings.length > 0) {
-            try {
-                await prisma.listing.createMany({
-                    data: validListings
                 });
-                totalCreated += validListings.length;
-                console.log(`✅ Batch ${i + 1} inserted (${validListings.length} items). Total: ${totalCreated}`);
-            } catch (dbError) {
-                console.error(`❌ DB Insert Error in batch ${i + 1}:`, dbError);
+            } else {
+                console.log('❌ Skipped');
+            }
+
+            if (idx < generatedData.length - 1) {
+                await sleep(DELAY_BETWEEN_IMAGES_MS);
             }
         }
 
-        await new Promise(r => setTimeout(r, 1000));
+        if (validListings.length > 0) {
+            try {
+                await prisma.listing.createMany({ data: validListings });
+                totalCreated += validListings.length;
+                console.log(`📝 Batch saved. Total listings: ${totalCreated}`);
+            } catch (dbError) {
+                console.error(`❌ DB Insert Error:`, dbError);
+            }
+        }
+
+        await sleep(2000);
     }
 
-    console.log(`\n🎉 Done! Created ${totalCreated} listings with static images.`);
+    console.log(`\n🎉 Done! Created ${totalCreated} listings.`);
 }
 
 main()
