@@ -3,10 +3,10 @@ import { semanticSearchListings } from '@/lib/supabase';
 import prisma from '@/lib/prismadb';
 import { parseUserIntent } from './intent-parser';
 import { responses } from './responses';
-import { 
-  getConversation, 
-  addMessage, 
-  updateFilters, 
+import {
+  getConversation,
+  addMessage,
+  updateFilters,
   updateLastSearch,
   analyzePreferences,
   getConversationSummary,
@@ -25,7 +25,7 @@ export async function searchAgent(query: string): Promise<AgentResult> {
   try {
     // Generate query embedding
     const queryEmbedding = await generateEmbedding(query);
-    
+
     // Semantic search
     const searchResults = await semanticSearchListings(
       queryEmbedding,
@@ -171,7 +171,7 @@ function checkDateAvailability(
       const endDate = new Date(reservation.endDate);
       return startDate >= now || endDate >= now;
     });
-    
+
     return {
       isAvailable: !hasConflicts,
       conflictingDates: [],
@@ -183,7 +183,7 @@ function checkDateAvailability(
   const conflicts = listing.reservations?.filter((reservation: any) => {
     const resStart = new Date(reservation.startDate);
     const resEnd = new Date(reservation.endDate);
-    
+
     // 检查日期是否重叠
     return (
       (checkInDate >= resStart && checkInDate < resEnd) ||
@@ -193,15 +193,15 @@ function checkDateAvailability(
   }) || [];
 
   const isAvailable = conflicts.length === 0;
-  const conflictingDates = conflicts.map((res: any) => 
+  const conflictingDates = conflicts.map((res: any) =>
     `${new Date(res.startDate).toLocaleDateString()} - ${new Date(res.endDate).toLocaleDateString()}`
   );
 
   return {
     isAvailable,
     conflictingDates,
-    availableInfo: isAvailable 
-      ? `${checkInDate.toLocaleDateString()} - ${checkOutDate.toLocaleDateString()} 可预订` 
+    availableInfo: isAvailable
+      ? `${checkInDate.toLocaleDateString()} - ${checkOutDate.toLocaleDateString()} 可预订`
       : `已被预订: ${conflictingDates.join(', ')}`
   };
 }
@@ -252,11 +252,11 @@ function predictPrice(listing: any, checkInDate?: Date): {
 
   const predictedPrice = Math.round(basePrice * multiplier);
   const change = predictedPrice - basePrice;
-  const priceChange = change > 0 
-    ? `+$${change} (${((change / basePrice) * 100).toFixed(0)}%)` 
-    : change < 0 
-    ? `-$${Math.abs(change)} (${((Math.abs(change) / basePrice) * 100).toFixed(0)}%)` 
-    : '无变化';
+  const priceChange = change > 0
+    ? `+$${change} (${((change / basePrice) * 100).toFixed(0)}%)`
+    : change < 0
+      ? `-$${Math.abs(change)} (${((Math.abs(change) / basePrice) * 100).toFixed(0)}%)`
+      : '无变化';
 
   return {
     currentPrice: basePrice,
@@ -268,7 +268,7 @@ function predictPrice(listing: any, checkInDate?: Date): {
 
 // 预订 Agent - 负责检查可用性、价格Now和预订建议
 export async function bookingAgent(
-  listings: any[], 
+  listings: any[],
   options?: {
     checkInDate?: string;
     checkOutDate?: string;
@@ -284,7 +284,7 @@ export async function bookingAgent(
       const dateCheck = checkDateAvailability(listing, checkIn, checkOut);
 
       // 2. 价格Now
-      const priceInfo = options?.enablePricePrediction 
+      const priceInfo = options?.enablePricePrediction
         ? predictPrice(listing, checkIn)
         : null;
 
@@ -324,9 +324,8 @@ export async function bookingAgent(
     return {
       agent: 'BookingAgent',
       listings: availableListings,
-      reasoning: `检查了 ${availableListings.length} properties，${bookableListings.length} 个可预订${
-        checkIn ? `，日期: ${checkIn.toLocaleDateString()} - ${checkOut?.toLocaleDateString()}` : ''
-      }`
+      reasoning: `检查了 ${availableListings.length} properties，${bookableListings.length} 个可预订${checkIn ? `，日期: ${checkIn.toLocaleDateString()} - ${checkOut?.toLocaleDateString()}` : ''
+        }`
     };
   } catch (error) {
     console.error('BookingAgent Error:', error);
@@ -346,7 +345,7 @@ export interface OrchestrationResult {
 
 // Multi-Agent 编排器（增强版 + 对话记忆）
 export async function orchestrateAgents(
-  query: string, 
+  query: string,
   conversationId: string = 'default'
 ): Promise<OrchestrationResult> {
   try {
@@ -368,13 +367,13 @@ export async function orchestrateAgents(
     // 获取对话摘要
     const conversationSummary = getConversationSummary(context);
     console.log('📝 Conversation context:', conversationSummary);
-    
+
     // Build conversation history (last 5 messages)
     const recentHistory = context.messages
       .slice(-5)
       .map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`)
       .join('\n');
-    
+
     // 1. Parse user intent (with conversation history)
     const intent = await parseUserIntent(query, recentHistory);
     console.log('🧠 User intent:', intent.type, intent.listingTitle ? `(Listing: ${intent.listingTitle})` : '');
@@ -393,7 +392,7 @@ export async function orchestrateAgents(
         const msg = recentMessages[i];
         // 查找常见房源名称模式
         const listingMatch = msg.content.match(/(Luxury Villa|Cozy Apartment|Modern Loft|Beach House|Mountain Cabin|City Studio|Countryside Cottage|Penthouse Suite|Garden House|Lake View Home|Seaside Retreat|Urban Oasis|Historic Mansion|Desert Lodge|Forest Cabin|Elegant Townhouse|Charming Bungalow|Stylish Condo|Rustic Farmhouse|Waterfront Property)\s*\d+/i);
-        
+
         if (listingMatch) {
           intent.listingTitle = listingMatch[0];
           console.log('💡 Extracted listing name from conversation history:', intent.listingTitle);
@@ -412,11 +411,11 @@ export async function orchestrateAgents(
     }
 
     // 默认：搜索流程（基于上下文）
-    
+
     // 检查是否是基于上次结果的追问
     const isFollowUp = query.length < 20 && (
-      query.includes('这些') || 
-      query.includes('它们') || 
+      query.includes('这些') ||
+      query.includes('它们') ||
       query.includes('最便宜') ||
       query.includes('最贵') ||
       query.includes('最近') ||
@@ -447,7 +446,7 @@ export async function orchestrateAgents(
     // 2. Recommend Agent (considering user preferences)
     const recommendResult = await recommendAgent(query, listings);
     console.log('💡 RecommendAgent results:', recommendResult.listings.length, 'recommendations');
-    
+
     // 3. Booking Agent (with date and price prediction)
     const bookingResult = await bookingAgent(recommendResult.listings, {
       checkInDate: intent.checkInDate || context.currentFilters?.checkInDate,
@@ -470,13 +469,13 @@ export async function orchestrateAgents(
 
     // 5. 生成最终回复
     let message = '';
-    
+
     if (isFollowUp) {
       message = `🔄 Based on previous search, filtered ${topListings.length} ${topListings.length === 1 ? 'property' : 'properties'}:\n\n`;
     } else {
       message = `🎉 Found ${topListings.length} perfect ${topListings.length === 1 ? 'property' : 'properties'}!\n\n`;
     }
-    
+
     if (intent.checkInDate || context.currentFilters?.checkInDate) {
       const checkIn = intent.checkInDate || context.currentFilters?.checkInDate;
       const checkOut = intent.checkOutDate || context.currentFilters?.checkOutDate;
@@ -525,7 +524,7 @@ async function handleDateCheck(intent: any, conversationId: string): Promise<Orc
     });
 
     const available = bookingResult.listings.filter(l => l.canBook).slice(0, 10);
-    
+
     let message = `📅 Date Availability Results:\n\n`;
     message += `Check-in: ${new Date(intent.checkInDate).toLocaleDateString()}\n`;
     message += `Check-out: ${new Date(intent.checkOutDate).toLocaleDateString()}\n\n`;
@@ -550,13 +549,13 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
   try {
     // 获取上下文
     const context = getConversation(conversationId);
-    
+
     let listings: any[] = [];
-    
+
     // 如果指定了特定房源，只分析那properties
     if (intent.listingTitle) {
       console.log('🎯 Analyzing specific listing price:', intent.listingTitle);
-      
+
       // Search in cache first
       if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
         const cleanQuery = intent.listingTitle.toLowerCase().replace(/\s/g, '');
@@ -564,13 +563,13 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
           const cleanTitle = l.title.toLowerCase().replace(/\s/g, '');
           return cleanTitle === cleanQuery || cleanTitle.includes(cleanQuery) || cleanQuery.includes(cleanTitle);
         });
-        
+
         if (found) {
           listings = [found];
           console.log('✅ Found in cache:', found.title);
         }
       }
-      
+
       // 如果缓存中没Found，去数据库查找
       if (listings.length === 0) {
         const found = await prisma.listing.findFirst({
@@ -582,30 +581,30 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
           },
           include: { user: true, reservations: true }
         });
-        
+
         if (found) {
           listings = [found];
         }
       }
-      
+
       if (listings.length === 0) {
         return {
           message: `😕 Sorry, couldn't find "${intent.listingTitle}".\n\n💡 Search for properties first, then ask about pricing.`,
           listings: []
         };
       }
-    } 
+    }
     // 如果没有指定房源，使用上次搜索结果
     else if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
       console.log('🔄 Using last search results -', context.lastSearchResults.length, 'properties for price analysis');
       listings = context.lastSearchResults.slice(0, 20);
-    } 
+    }
     // 否则重新搜索
     else {
       const searchResult = await searchAgent(intent.searchQuery || '房源');
       listings = searchResult.listings.slice(0, 20);
     }
-    
+
     // 应用价格Now
     const bookingResult = await bookingAgent(listings, {
       checkInDate: intent.checkInDate,
@@ -614,18 +613,18 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
     });
 
     const resultListings = bookingResult.listings.slice(0, 5);
-    
+
     let message = '';
-    
+
     // If for a specific listing
     if (intent.listingTitle && resultListings.length === 1) {
       const listing = resultListings[0];
       message = `🎯 **Price Analysis:** ${listing.title}\n\n`;
-      
+
       if (listing.priceInfo) {
         message += `💰 **Base Price:** $${listing.priceInfo.currentPrice}/night\n\n`;
         message += `📊 **Best Time to Book:**\n\n`;
-        
+
         // Provide suggestions based on trends
         if (listing.priceInfo.priceTrend.includes('Early') || listing.priceInfo.priceTrend.includes('Advance')) {
           message += `✅ Book Now - Early bird discount (-5%)\n`;
@@ -652,28 +651,28 @@ async function handlePricePredict(intent: any, conversationId: string): Promise<
           message += `💡 Book anytime - price is stable`;
         }
       }
-      
+
       message += `\n\n🎯 **Ready to book?** Say: "Book ${listing.title}, [dates]"`;
     }
     // If for multiple properties
     else {
       message = `📊 **Price Trend Analysis:**\n\n`;
-      
+
       if (intent.checkInDate) {
         message += `📅 Query Date: ${new Date(intent.checkInDate).toLocaleDateString()}\n\n`;
       }
-      
+
       // Add context hint
       if (context?.lastSearchResults && context.lastSearchResults.length > 0 && !intent.listingTitle) {
         message += `Based on your previous search - `;
       }
-      
+
       message += `Analyzed ${resultListings.length} ${resultListings.length === 1 ? 'property' : 'properties'}:\n\n`;
-      
+
       resultListings.forEach((listing, idx) => {
         if (listing.priceInfo) {
-          const trend = listing.priceInfo.priceChange.startsWith('+') ? '📈' : 
-                       listing.priceInfo.priceChange.startsWith('-') ? '📉' : '➡️';
+          const trend = listing.priceInfo.priceChange.startsWith('+') ? '📈' :
+            listing.priceInfo.priceChange.startsWith('-') ? '📉' : '➡️';
           message += `${idx + 1}. ${listing.title}\n`;
           message += `   ${trend} ${listing.priceInfo.priceTrend}\n`;
           message += `   Was $${listing.priceInfo.currentPrice} → Now $${listing.priceInfo.predictedPrice}/night\n\n`;
@@ -701,12 +700,12 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
   try {
     const context = getConversation(conversationId);
     let message = `🎫 Booking Assistant:\n\n`;
-    
+
     if (!intent.listingTitle && !intent.listingId) {
       message += `Please search for properties first, then:\n\n`;
       message += `"Book [property name]"\n\n`;
       message += `Example: "Book Luxury Villa 1"`;
-      
+
       return {
         message,
         listings: []
@@ -715,24 +714,24 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
 
     // Find specified listing
     let listing = null;
-    
+
     // 1. 优先从上次搜索结果中查找（更准确，更快）
     if (intent.listingTitle && context?.lastSearchResults && context.lastSearchResults.length > 0) {
       console.log('🔍 Searching in last results:', intent.listingTitle);
-      
+
       // Remove spaces for matching
       const cleanQuery = intent.listingTitle.toLowerCase().replace(/\s/g, '');
-      
+
       listing = context.lastSearchResults.find((l: any) => {
         const cleanTitle = l.title.toLowerCase().replace(/\s/g, '');
         return cleanTitle === cleanQuery || cleanTitle.includes(cleanQuery) || cleanQuery.includes(cleanTitle);
       });
-      
+
       if (listing) {
         console.log('✅ Found in cache:', listing.title);
       }
     }
-    
+
     // 2. 如果缓存中没Found，去数据库查找
     if (!listing) {
       if (intent.listingId) {
@@ -751,15 +750,15 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
           },
           include: { user: true, reservations: true }
         });
-        
+
         // If not found, try fuzzy matching
         if (!listing) {
           const cleanQuery = intent.listingTitle.toLowerCase().replace(/\s/g, '');
           const allListings = await prisma.listing.findMany({
             include: { user: true, reservations: true }
           });
-          
-          listing = allListings.find(l => {
+
+          listing = allListings.find((l: any) => {
             const cleanTitle = l.title.toLowerCase().replace(/\s/g, '');
             return cleanTitle.includes(cleanQuery) || cleanQuery.includes(cleanTitle);
           }) || null;
@@ -769,7 +768,7 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
 
     if (!listing) {
       message = `😕 Sorry, couldn't find "${intent.listingTitle}".\n\n`;
-      
+
       // If there are previous search results, show available options
       if (context?.lastSearchResults && context.lastSearchResults.length > 0) {
         message += `📋 From your previous search:\n\n`;
@@ -777,14 +776,14 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
           message += `${idx + 1}. ${l.title}\n`;
         });
         message += `\n💡 Tell me: "Book [property name]"`;
-        
+
         return {
           message,
           listings: context.lastSearchResults.slice(0, 5)
         };
       } else {
         message += `💡 Search first, then book.`;
-        
+
         return {
           message,
           listings: []
@@ -806,7 +805,7 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
       message = `😔 Sorry, ${listing.title} is unavailable for your selected dates.\n\n`;
       message += `📅 ${listingWithInfo.bookingInfo}\n\n`;
       message += `💡 Try different dates or other properties?`;
-      
+
       return {
         message,
         listings: [listingWithInfo]
@@ -817,16 +816,16 @@ async function handleBooking(intent: any, conversationId: string): Promise<Orche
     message = `✅ **Perfect! Booking ${listing.title}**\n\n`;
     message += `🏠 **Property:** ${listing.title}\n`;
     message += `📍 **Location:** ${listing.locationValue}\n\n`;
-    
+
     if (hasDate) {
       const checkIn = new Date(intent.checkInDate!);
       const checkOut = new Date(intent.checkOutDate!);
       const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       message += `📅 **Check-in:** ${checkIn.toLocaleDateString()}\n`;
       message += `📅 **Check-out:** ${checkOut.toLocaleDateString()}\n`;
       message += `🌙 **Duration:** ${nights} ${nights === 1 ? 'night' : 'nights'}\n\n`;
-      
+
       if (listingWithInfo.priceInfo) {
         message += `💰 **Rate:** $${listingWithInfo.priceInfo.predictedPrice}/night\n`;
         message += `📊 **Pricing:** ${listingWithInfo.priceInfo.priceTrend}\n`;
