@@ -4,17 +4,21 @@ import { useState, useRef, useEffect } from 'react';
 import { X, Send, Sparkles } from 'lucide-react';
 import AI3DAvatar from './AI3DAvatar';
 
+interface AgentTraceStep {
+  agent: string;
+  action: string;
+  status: 'pending' | 'success' | 'failed';
+  reasoning?: string;
+  timestamp: number;
+}
+
 interface Message {
   id: string;
   type: 'user' | 'assistant';
   content: string;
   timestamp: Date;
   listings?: any[];
-  agentStatus?: {
-    search: 'idle' | 'active' | 'complete';
-    recommend: 'idle' | 'active' | 'complete';
-    booking: 'idle' | 'active' | 'complete';
-  };
+  trace?: AgentTraceStep[];
 }
 
 interface ModernAIChatModalProps {
@@ -25,7 +29,7 @@ interface ModernAIChatModalProps {
 const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }) => {
   // Generate unique conversation ID
   const [conversationId] = useState(() => `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-  
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -55,22 +59,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
     scrollToBottom();
   }, [messages]);
 
-  const simulateAgentProgress = async () => {
-    // Search Agent
-    setCurrentAgentStatus({ search: 'active', recommend: 'idle', booking: 'idle' });
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Recommend Agent
-    setCurrentAgentStatus({ search: 'complete', recommend: 'active', booking: 'idle' });
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Booking Agent
-    setCurrentAgentStatus({ search: 'complete', recommend: 'complete', booking: 'active' });
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    // Complete
-    setCurrentAgentStatus({ search: 'complete', recommend: 'complete', booking: 'complete' });
-  };
+
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -86,30 +75,33 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
     setInput('');
     setIsLoading(true);
 
-    // 开始 Agent 动画
-    simulateAgentProgress();
-
     try {
       const response = await fetch('/api/ai-chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           message: userMessage.content,
-          conversationId 
+          conversationId
         }),
       });
 
       const data = await response.json();
 
+      // Log the API response for debugging
+      console.log('AI Chat API Response:', data);
+
+      // Handle both response field (normal) and error field (legacy error format)
+      const messageContent = data.response || data.error || 'Sorry, I cannot answer your question right now.';
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         type: 'assistant',
-        content: data.response || 'Sorry, I cannot answer your question right now.',
+        content: messageContent,
         timestamp: new Date(),
         listings: data.listings || [],
-        agentStatus: { ...currentAgentStatus },
+        trace: data.trace || [],
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -140,22 +132,22 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* 背景模糊层 */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/40 backdrop-blur-md"
         onClick={onClose}
       />
-      
+
       {/* 主容器 - 玻璃拟态设计 */}
       <div className="relative w-full max-w-4xl h-[85vh] flex rounded-3xl overflow-hidden shadow-2xl bg-gradient-to-br from-white/95 to-blue-50/95 backdrop-blur-xl border border-white/20">
-        
+
         {/* 左侧 - AI 助手可视化 */}
         <div className="w-80 bg-gradient-to-br from-blue-500/10 to-purple-500/10 backdrop-blur-sm border-r border-white/20 p-6 flex flex-col items-center justify-center space-y-6">
           {/* 3D Avatar */}
-          <AI3DAvatar 
-            isThinking={isLoading} 
+          <AI3DAvatar
+            isThinking={isLoading}
             agentStatus={currentAgentStatus}
           />
-          
+
           {/* AI 状态文本 */}
           <div className="text-center space-y-2">
             <h3 className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -229,38 +221,37 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                   className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[75%] rounded-2xl p-4 ${
-                      message.type === 'user'
-                        ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg'
-                        : 'bg-white/80 backdrop-blur-sm text-gray-800 shadow-md border border-white/20'
-                    }`}
+                    className={`max-w-[75%] rounded-2xl p-4 ${message.type === 'user'
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg'
+                      : 'bg-white/80 backdrop-blur-sm text-gray-800 shadow-md border border-white/20'
+                      }`}
                   >
                     <div className="text-sm leading-relaxed space-y-1">
                       {message.content.split('\n').map((line, idx) => {
                         const trimmedLine = line.trim();
-                        
+
                         // Check for empty lines
                         if (!trimmedLine) {
                           return <div key={idx} className="h-2" />;
                         }
-                        
+
                         // Check if line contains bold markers
                         const hasBold = line.includes('**');
-                        
+
                         // Check if it's a bullet point
                         const isBullet = trimmedLine.startsWith('•');
-                        
+
                         // Render line with bold support
                         const renderLine = () => {
                           if (!hasBold) {
                             return isBullet ? <span className="pl-2">{line}</span> : line;
                           }
-                          
+
                           // Split by ** and render bold parts
                           const parts = line.split('**');
                           return (
                             <>
-                              {parts.map((part, i) => 
+                              {parts.map((part, i) =>
                                 i % 2 === 1 ? (
                                   <strong key={i} className="font-bold text-gray-900">
                                     {part}
@@ -272,7 +263,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                             </>
                           );
                         };
-                        
+
                         return (
                           <div key={idx} className={isBullet ? 'pl-2' : ''}>
                             {renderLine()}
@@ -285,7 +276,42 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                     </div>
                   </div>
                 </div>
-                
+
+                {/* Agent Trace - new visualization */}
+                {message.trace && message.trace.length > 0 && (
+                  <div className="flex justify-start mt-3">
+                    <div className="max-w-[75%] bg-gradient-to-br from-slate-50 to-blue-50/50 backdrop-blur-sm rounded-xl p-3 border border-slate-200/50 space-y-2">
+                      <div className="flex items-center space-x-2 text-xs font-semibold text-slate-700">
+                        <span>🧠</span>
+                        <span>Agent Thought Process</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {message.trace.map((step, idx) => (
+                          <div key={idx} className="flex items-start space-x-2 text-[11px]">
+                            <div className="flex-shrink-0 mt-0.5">
+                              {step.status === 'success' && <span className="text-green-600">✓</span>}
+                              {step.status === 'pending' && <span className="text-yellow-600">⏳</span>}
+                              {step.status === 'failed' && <span className="text-red-600">✗</span>}
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium text-slate-700">
+                                {step.agent}: {step.action}
+                              </div>
+                              {step.reasoning && (
+                                <div className="text-slate-500 mt-0.5 italic">
+                                  {step.reasoning.length > 100
+                                    ? step.reasoning.substring(0, 100) + '...'
+                                    : step.reasoning}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* 房源卡片 */}
                 {message.listings && message.listings.length > 0 && (
                   <div className="flex justify-start mt-4">
@@ -319,7 +345,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                               <p className="text-xs text-gray-600">
                                 👥 Up to {listing.guestCount} {listing.guestCount === 1 ? 'guest' : 'guests'}
                               </p>
-                              
+
                               {/* 价格信息 - 增强版 */}
                               <div className="space-y-1">
                                 {listing.priceInfo ? (
@@ -341,7 +367,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                                     ${listing.price}/night
                                   </p>
                                 )}
-                                
+
                                 {/* 总价（如果有多晚） */}
                                 {listing.totalPrice && listing.totalPrice !== listing.price && (
                                   <p className="text-xs text-gray-700 font-semibold">
@@ -360,15 +386,14 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                                   ))}
                                 </div>
                               )}
-                              
+
                               {/* 可用性状态 */}
                               {listing.availability && (
                                 <div className="flex items-center space-x-1">
-                                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                                    listing.canBook 
-                                      ? 'bg-green-100 text-green-700' 
-                                      : 'bg-red-100 text-red-700'
-                                  }`}>
+                                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${listing.canBook
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-red-100 text-red-700'
+                                    }`}>
                                     {listing.canBook ? '✅ Available' : '❌ Unavailable'}
                                   </span>
                                 </div>
@@ -382,7 +407,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                 )}
               </div>
             ))}
-            
+
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-md">
@@ -397,7 +422,7 @@ const ModernAIChatModal: React.FC<ModernAIChatModalProps> = ({ isOpen, onClose }
                 </div>
               </div>
             )}
-            
+
             <div ref={messagesEndRef} />
           </div>
 

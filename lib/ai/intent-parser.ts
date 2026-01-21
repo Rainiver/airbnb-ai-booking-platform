@@ -10,23 +10,29 @@ export interface UserIntent {
   listingId?: string;
   listingTitle?: string;
   enablePricePrediction?: boolean;
+  reasoning?: string; // Chain of Thought reasoning
 }
 
 // Parse user query, extract intent and parameters
 export async function parseUserIntent(
-  message: string, 
+  message: string,
   conversationHistory?: string
 ): Promise<UserIntent> {
   try {
-    const contextPrompt = conversationHistory 
-      ? `\n\n对话历史参考：\n${conversationHistory}\n` 
+    const contextPrompt = conversationHistory
+      ? `\n\n对话历史参考：\n${conversationHistory}\n`
       : '';
-    
-    const prompt = `你是一个旅行助手的意图分析器。分析用户的查询，提取以下信息并以 JSON 格式返回：
+
+    const prompt = `你是一个旅行助手的意图分析器。请一步步思考用户的真实意图，然后提取关键信息。
 
 用户查询: "${message}"${contextPrompt}
 
-请分析并返回 JSON（只返回 JSON，不要其他内容）：
+请按照以下格式输出你的回答：
+
+Reasoning:
+<在这里写下你的思考过程。例如：用户提到了"海边"，说明他想要Beach类型的房源；提到了"下周"，需要计算日期>
+
+JSON:
 {
   "type": "search | date_check | price_predict | booking | general",
   "searchQuery": "提取的搜索关键词（如：海边的房子）",
@@ -61,7 +67,11 @@ export async function parseUserIntent(
 
     const result = await chatModel.generateContent(prompt);
     const responseText = result.response.text();
-    
+
+    // 提取 Reasoning
+    const reasoningMatch = responseText.match(/Reasoning:([\s\S]*?)(?=JSON:|$)/i);
+    const reasoning = reasoningMatch ? reasoningMatch[1].trim() : '解析意图...';
+
     // 提取 JSON
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
@@ -69,12 +79,15 @@ export async function parseUserIntent(
       return {
         type: 'search',
         searchQuery: message,
+        reasoning: '无法解析具体意图，默认为搜索。'
       };
     }
 
     const intent = JSON.parse(jsonMatch[0]);
+    intent.reasoning = reasoning;
+
     console.log('📋 解析的意图:', intent);
-    
+
     return intent;
   } catch (error) {
     console.error('Intent parsing error:', error);
@@ -82,6 +95,7 @@ export async function parseUserIntent(
     return {
       type: 'search',
       searchQuery: message,
+      reasoning: '解析出错，降级为普通搜索。'
     };
   }
 }
@@ -89,7 +103,7 @@ export async function parseUserIntent(
 // 简单的日期解析（备用方案，不依赖 LLM）
 export function parseDateFromText(text: string): { checkIn?: Date; checkOut?: Date } {
   const result: { checkIn?: Date; checkOut?: Date } = {};
-  
+
   // 匹配常见日期格式
   const patterns = [
     // "1月1日到1月7日"
@@ -106,13 +120,13 @@ export function parseDateFromText(text: string): { checkIn?: Date; checkOut?: Da
       const year = new Date().getFullYear();
       const checkIn = new Date(year, parseInt(match[1]) - 1, parseInt(match[2]));
       const checkOut = new Date(year, parseInt(match[3]) - 1, parseInt(match[4]));
-      
+
       // 如果日期已过，使用明年
       if (checkIn < new Date()) {
         checkIn.setFullYear(year + 1);
         checkOut.setFullYear(year + 1);
       }
-      
+
       result.checkIn = checkIn;
       result.checkOut = checkOut;
       return result;
